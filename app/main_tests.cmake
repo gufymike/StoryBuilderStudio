@@ -22,7 +22,11 @@ target_include_directories(test_MainView PRIVATE
 
 if(WIN32)
     set_target_properties(test_MainView PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_MainView PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_MainView PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_MainView PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_MainView PRIVATE

@@ -95,7 +95,11 @@ target_include_directories(test_ProjectDirectoryModel PRIVATE
 
 if(WIN32)
     set_target_properties(test_ProjectDirectoryModel PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_ProjectDirectoryModel PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_ProjectDirectoryModel PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_ProjectDirectoryModel PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_ProjectDirectoryModel PRIVATE
@@ -122,7 +126,11 @@ target_include_directories(test_EditableFieldPair PRIVATE
 
 if(WIN32)
     set_target_properties(test_EditableFieldPair PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_EditableFieldPair PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_EditableFieldPair PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_EditableFieldPair PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_EditableFieldPair PRIVATE
@@ -151,7 +159,11 @@ target_include_directories(test_NewProjectDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_NewProjectDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_NewProjectDialog PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_NewProjectDialog PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_NewProjectDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_NewProjectDialog PRIVATE
@@ -160,6 +172,7 @@ target_link_libraries(test_NewProjectDialog PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::Test
+    StoryBuilderStudioLib
 )
 
 add_test(NAME test_NewProjectDialog COMMAND test_NewProjectDialog)
@@ -180,7 +193,11 @@ target_include_directories(test_NewSeriesDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_NewSeriesDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_NewSeriesDialog PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_NewSeriesDialog PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_NewSeriesDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_NewSeriesDialog PRIVATE
@@ -189,6 +206,7 @@ target_link_libraries(test_NewSeriesDialog PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::Test
+    StoryBuilderStudioLib
 )
 
 add_test(NAME test_NewSeriesDialog COMMAND test_NewSeriesDialog)
@@ -209,7 +227,11 @@ target_include_directories(test_OpenProjectDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_OpenProjectDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_OpenProjectDialog PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_OpenProjectDialog PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_OpenProjectDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_OpenProjectDialog PRIVATE
@@ -218,6 +240,7 @@ target_link_libraries(test_OpenProjectDialog PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::Test
+    StoryBuilderStudioLib
 )
 
 add_test(NAME test_OpenProjectDialog COMMAND test_OpenProjectDialog)
@@ -238,7 +261,11 @@ target_include_directories(test_EpisodeListCard PRIVATE
 
 if(WIN32)
     set_target_properties(test_EpisodeListCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_EpisodeListCard PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_EpisodeListCard PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_EpisodeListCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_EpisodeListCard PRIVATE
@@ -247,6 +274,7 @@ target_link_libraries(test_EpisodeListCard PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::Test
+    StoryBuilderStudioLib
 )
 
 add_test(NAME test_EpisodeListCard COMMAND test_EpisodeListCard)
@@ -268,7 +296,11 @@ target_include_directories(test_ProjectDetailsCard PRIVATE
 
 if(WIN32)
     set_target_properties(test_ProjectDetailsCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_ProjectDetailsCard PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_ProjectDetailsCard PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_ProjectDetailsCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_ProjectDetailsCard PRIVATE
@@ -299,7 +331,11 @@ target_include_directories(test_SeriesHeaderCard PRIVATE
 
 if(WIN32)
     set_target_properties(test_SeriesHeaderCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_SeriesHeaderCard PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_SeriesHeaderCard PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_SeriesHeaderCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_SeriesHeaderCard PRIVATE
@@ -331,7 +367,11 @@ target_include_directories(test_SeriesLauncherModal PRIVATE
 
 if(WIN32)
     set_target_properties(test_SeriesLauncherModal PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_SeriesLauncherModal PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_SeriesLauncherModal PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_SeriesLauncherModal PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_SeriesLauncherModal PRIVATE
@@ -362,7 +402,11 @@ target_include_directories(test_FirstRunWizardModal PRIVATE
 
 if(WIN32)
     set_target_properties(test_FirstRunWizardModal PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_FirstRunWizardModal PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_FirstRunWizardModal PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_FirstRunWizardModal PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_FirstRunWizardModal PRIVATE
@@ -393,7 +437,11 @@ target_include_directories(test_HelpManualDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_HelpManualDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_HelpManualDialog PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_HelpManualDialog PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_HelpManualDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_HelpManualDialog PRIVATE
@@ -424,7 +472,11 @@ target_include_directories(test_ProjectMenuBar PRIVATE
 
 if(WIN32)
     set_target_properties(test_ProjectMenuBar PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_ProjectMenuBar PRIVATE -mconsole)
+    if(MINGW)
+    	target_link_options(test_ProjectMenuBar PRIVATE -mconsole)
+    elseif(MSVC)
+    	target_link_options(test_ProjectMenuBar PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_ProjectMenuBar PRIVATE

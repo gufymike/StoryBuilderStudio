@@ -1,4 +1,3 @@
-
 # --- test_PromptHistoryStore ---
 add_executable(test_PromptHistoryStore
     tests/test_PromptHistoryStore.cpp
@@ -13,7 +12,11 @@ target_include_directories(test_PromptHistoryStore PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptHistoryStore PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptHistoryStore PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptHistoryStore PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptHistoryStore PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptHistoryStore PRIVATE
@@ -38,7 +41,11 @@ target_include_directories(test_PromptManager PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptManager PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptManager PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptManager PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptManager PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptManager PRIVATE
@@ -66,7 +73,11 @@ target_include_directories(test_PromptHistoryViewerDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptHistoryViewerDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptHistoryViewerDialog PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptHistoryViewerDialog PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptHistoryViewerDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptHistoryViewerDialog PRIVATE
@@ -97,7 +108,11 @@ target_include_directories(test_PromptEditorDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptEditorDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptEditorDialog PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptEditorDialog PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptEditorDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptEditorDialog PRIVATE
@@ -128,7 +143,11 @@ target_include_directories(test_PromptOptionsPanel PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptOptionsPanel PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptOptionsPanel PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptOptionsPanel PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptOptionsPanel PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptOptionsPanel PRIVATE
@@ -159,7 +178,11 @@ target_include_directories(test_PromptBuilder PRIVATE
 
 if(WIN32)
     set_target_properties(test_PromptBuilder PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_PromptBuilder PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_PromptBuilder PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_PromptBuilder PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_PromptBuilder PRIVATE

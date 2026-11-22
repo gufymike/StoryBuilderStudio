@@ -13,7 +13,11 @@ target_include_directories(test_StoryDocument PRIVATE
 
 if(WIN32)
     set_target_properties(test_StoryDocument PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryDocument PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryDocument PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryDocument PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_StoryDocument PRIVATE
@@ -39,7 +43,11 @@ target_include_directories(test_StoryBoardManager PRIVATE
 
 if(WIN32)
     set_target_properties(test_StoryBoardManager PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardManager PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryBoardManager PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardManager PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_StoryBoardManager PRIVATE
@@ -63,10 +71,19 @@ target_include_directories(test_StoryBoardAssetList PRIVATE
 )
 if(WIN32)
     set_target_properties(test_StoryBoardAssetList PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardAssetList PRIVATE -mconsole)
+        if(MINGW)
+        target_link_options(test_StoryBoardAssetList PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardAssetList PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 target_link_libraries(test_StoryBoardAssetList PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Test StoryBuilderStudioLib
+    Qt6::Core 
+    Qt6::Gui
+    Qt6::Qml 
+    Qt6::Quick
+    Qt6::Test
+    StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardAssetList COMMAND test_StoryBoardAssetList)
 
@@ -86,10 +103,20 @@ target_include_directories(test_StoryBoardAssetPickerModal PRIVATE
 )
 if(WIN32)
     set_target_properties(test_StoryBoardAssetPickerModal PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardAssetPickerModal PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryBoardAssetPickerModal PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardAssetPickerModal PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 target_link_libraries(test_StoryBoardAssetPickerModal PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Multimedia Qt6::Test StoryBuilderStudioLib
+    Qt6::Core 
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::Multimedia
+    Qt6::Test
+    StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardAssetPickerModal COMMAND test_StoryBoardAssetPickerModal)
 
@@ -109,10 +136,20 @@ target_include_directories(test_StoryBoardShotDetailDialog PRIVATE
 )
 if(WIN32)
     set_target_properties(test_StoryBoardShotDetailDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardShotDetailDialog PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryBoardShotDetailDialog PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardShotDetailDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 target_link_libraries(test_StoryBoardShotDetailDialog PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Multimedia Qt6::Test StoryBuilderStudioLib
+    Qt6::Core 
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::Multimedia
+    Qt6::Test 
+    StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardShotDetailDialog COMMAND test_StoryBoardShotDetailDialog)
 
@@ -129,10 +166,19 @@ target_include_directories(test_StoryBoardCard PRIVATE
 )
 if(WIN32)
     set_target_properties(test_StoryBoardCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardCard PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryBoardCard PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 target_link_libraries(test_StoryBoardCard PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Test StoryBuilderStudioLib
+    Qt6::Core 
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::Test
+    StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardCard COMMAND test_StoryBoardCard)
 
@@ -152,9 +198,19 @@ target_include_directories(test_StoryBoardWorkspaceView PRIVATE
 )
 if(WIN32)
     set_target_properties(test_StoryBoardWorkspaceView PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_StoryBoardWorkspaceView PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_StoryBoardWorkspaceView PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_StoryBoardWorkspaceView PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 target_link_libraries(test_StoryBoardWorkspaceView PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Multimedia Qt6::Test StoryBuilderStudioLib
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::Multimedia
+    Qt6::Test
+    StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardWorkspaceView COMMAND test_StoryBoardWorkspaceView)

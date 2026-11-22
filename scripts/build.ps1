@@ -122,7 +122,7 @@ if ($IncList.Count -gt 0) {
 $Summary = if ($Selected.Count -gt 0) { $Selected -join ", " } else { "none" }
 Write-Host "==> Configuring StoryBuilderStudio (libs: $Summary)..."
 cmake @CmakeArgs
-cmake --build $BuildDir --parallel
-ctest --test-dir $BuildDir --output-on-failure
+cmake --build $BuildDir --config $BuildType --parallel
+ctest --test-dir $BuildDir -C $BuildType --output-on-failure
 
 Write-Host "==> Done! Binary is in: $((Get-Location).Path)\$BuildDir"

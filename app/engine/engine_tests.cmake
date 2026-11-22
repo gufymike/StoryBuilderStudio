@@ -81,7 +81,11 @@ if(SD_LINK_LIB)
 
     if(WIN32)
         set_target_properties(test_LocalSdEngine PROPERTIES WIN32_EXECUTABLE FALSE)
-        target_link_options(test_LocalSdEngine PRIVATE -mconsole)
+	if(MINGW)
+	    target_link_options(test_LocalSdEngine PRIVATE -mconsole)
+	elseif(MSVC)
+	    target_link_options(test_LocalSdEngine PRIVATE /SUBSYSTEM:CONSOLE)
+	endif()
     endif()
 
     target_link_libraries(test_LocalSdEngine PRIVATE
@@ -124,7 +128,12 @@ if(SD_LINK_LIB)
 
     if(WIN32)
         set_target_properties(test_LocalSdEngineVideo PROPERTIES WIN32_EXECUTABLE FALSE)
-        target_link_options(test_LocalSdEngineVideo PRIVATE -mconsole)
+        if(MINGW)
+	    target_link_options(test_LocalSdEngineVideo PRIVATE -mconsole)
+	elseif(MSVC)
+	    target_link_options(test_LocalSdEngineVideo PRIVATE /SUBSYSTEM:CONSOLE)
+	endif()
+
     endif()
 
     target_link_libraries(test_LocalSdEngineVideo PRIVATE
@@ -173,7 +182,12 @@ if(AUDIOCPP_DLL)
 
     if(WIN32)
         set_target_properties(test_LocalAudioEngine PROPERTIES WIN32_EXECUTABLE FALSE)
-        target_link_options(test_LocalAudioEngine PRIVATE -mconsole)
+        if(MINGW)
+	    target_link_options(test_LocalAudioEngine PRIVATE -mconsole)
+	elseif(MSVC)
+	    target_link_options(test_LocalAudioEngine PRIVATE /SUBSYSTEM:CONSOLE)
+	endif()
+
     endif()
 
     target_link_libraries(test_LocalAudioEngine PRIVATE
@@ -216,7 +230,11 @@ if(SHERPA_ONNX_BIN AND ONNXRUNTIME_BIN)
 
     if(WIN32)
         set_target_properties(test_KokoroTtsEngine PROPERTIES WIN32_EXECUTABLE FALSE)
-        target_link_options(test_KokoroTtsEngine PRIVATE -mconsole)
+        if(MINGW)
+	    target_link_options(test_KokoroTtsEngine PRIVATE -mconsole)
+	elseif(MSVC)
+	    target_link_options(test_KokoroTtsEngine PRIVATE /SUBSYSTEM:CONSOLE)
+	endif()
     endif()
 
     target_link_libraries(test_KokoroTtsEngine PRIVATE
@@ -259,7 +277,12 @@ target_include_directories(test_GenericRestDriver PRIVATE
 
 if(WIN32)
     set_target_properties(test_GenericRestDriver PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_GenericRestDriver PRIVATE -mconsole)
+    if(MINGW)
+	    target_link_options(test_GenericRestDriver PRIVATE -mconsole)
+	elseif(MSVC)
+	    target_link_options(test_GenericRestDriver PRIVATE /SUBSYSTEM:CONSOLE)
+	endif()
+
 endif()
 
 target_link_libraries(test_GenericRestDriver PRIVATE
@@ -285,7 +308,11 @@ target_include_directories(test_InferenceEstimator PRIVATE
 
 if(WIN32)
     set_target_properties(test_InferenceEstimator PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_InferenceEstimator PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_InferenceEstimator PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_InferenceEstimator PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_InferenceEstimator PRIVATE
@@ -313,7 +340,11 @@ target_include_directories(test_InferenceEstimateDialog PRIVATE
 
 if(WIN32)
     set_target_properties(test_InferenceEstimateDialog PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_InferenceEstimateDialog PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_InferenceEstimateDialog PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_InferenceEstimateDialog PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_InferenceEstimateDialog PRIVATE
@@ -344,7 +375,11 @@ target_include_directories(test_ProviderSelectorWidget PRIVATE
 
 if(WIN32)
     set_target_properties(test_ProviderSelectorWidget PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_ProviderSelectorWidget PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_ProviderSelectorWidget PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_ProviderSelectorWidget PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_ProviderSelectorWidget PRIVATE
@@ -374,7 +409,11 @@ target_include_directories(test_InferenceSettingsPanel PRIVATE
 
 if(WIN32)
     set_target_properties(test_InferenceSettingsPanel PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_InferenceSettingsPanel PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_InferenceSettingsPanel PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_InferenceSettingsPanel PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_InferenceSettingsPanel PRIVATE

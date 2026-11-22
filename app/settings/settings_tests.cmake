@@ -1,4 +1,8 @@
-
+#    if(MINGW)
+#        target_link_options(${TEST_TARGET} PRIVATE -mconsole)
+#    elseif(MSVC)
+#	target_link_options(${TEST_TARGET} PRIVATE /SUBSYSTEM:CONSOLE)
+#    endif()
 add_executable(test_SettingsManager
         tests/test_SettingsManager.cpp
         app/settings/settingsmanager.cpp
@@ -36,7 +40,11 @@ target_include_directories(test_LocalModelManifestCard PRIVATE
 
 if(WIN32)
     set_target_properties(test_LocalModelManifestCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_LocalModelManifestCard PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_LocalModelManifestCard PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_LocalModelManifestCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_LocalModelManifestCard PRIVATE
@@ -68,7 +76,11 @@ target_include_directories(test_SettingsControlPanel PRIVATE
 
 if(WIN32)
     set_target_properties(test_SettingsControlPanel PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_SettingsControlPanel PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_SettingsControlPanel PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_SettingsControlPanel PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_SettingsControlPanel PRIVATE
@@ -99,7 +111,11 @@ target_include_directories(test_RemoteApiConfigCard PRIVATE
 
 if(WIN32)
     set_target_properties(test_RemoteApiConfigCard PROPERTIES WIN32_EXECUTABLE FALSE)
-    target_link_options(test_RemoteApiConfigCard PRIVATE -mconsole)
+    if(MINGW)
+        target_link_options(test_RemoteApiConfigCard PRIVATE -mconsole)
+    elseif(MSVC)
+	target_link_options(test_RemoteApiConfigCard PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
 endif()
 
 target_link_libraries(test_RemoteApiConfigCard PRIVATE
