@@ -1,0 +1,37 @@
+<RCC>
+    <qresource prefix="/prompts/audio">
+        <file>prompts/audio/conversational.prompt</file>
+        <file>prompts/audio/dramatic_reading.prompt</file>
+        <file>prompts/audio/neutral_narration.prompt</file>
+    </qresource>
+    <qresource prefix="/prompts/image">
+        <file>prompts/image/4k_uhd.prompt</file>
+        <file>prompts/image/cinematic_widescreen.prompt</file>
+        <file>prompts/image/close_up.prompt</file>
+        <file>prompts/image/daylight.prompt</file>
+        <file>prompts/image/neon_glow.prompt</file>
+        <file>prompts/image/night.prompt</file>
+        <file>prompts/image/square.prompt</file>
+        <file>prompts/image/wide_pan.prompt</file>
+    </qresource>
+    <qresource prefix="/prompts/text">
+        <file>prompts/text/anime.prompt</file>
+        <file>prompts/text/cyberpunk.prompt</file>
+        <file>prompts/text/film_noir.prompt</file>
+        <file>prompts/text/realistic.prompt</file>
+    </qresource>
+    <qresource prefix="/prompts/video">
+        <file>prompts/video/4k_uhd.prompt</file>
+        <file>prompts/video/cinematic_widescreen.prompt</file>
+        <file>prompts/video/close_up.prompt</file>
+        <file>prompts/video/daylight.prompt</file>
+        <file>prompts/video/neon_glow.prompt</file>
+        <file>prompts/video/night.prompt</file>
+        <file>prompts/video/square.prompt</file>
+        <file>prompts/video/tracking_shot.prompt</file>
+        <file>prompts/video/wide_pan.prompt</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>app.ico</file>
+    </qresource>
+</RCC>
