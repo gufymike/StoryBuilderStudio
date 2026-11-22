@@ -1,0 +1,59 @@
+Applicaiton name: storyBuilderStudio
+Display name: Story Builder Studio
+Version: 1.0
+Domain name: gufymike.com
+Orginazational Name: 5150wtmw
+
+All tests unless a reason exists not to will be derived from QTest and mock objects from QMock.
+
+This is a test driven environment, every code should have a test with it.  The code doesn't have to pass the test, but the test should accurately describe what the code should do.
+
+The source directory is broken down like this:
+
++---app
+¦   +---core
+¦   +---engine
+¦       +---local
+¦       +---remote
+¦   +---promptbuilder
+¦   +---settings
+¦   +---workspace
++---assets
+¦   +---icons
+¦       +---material
++---docs
++---scripts
++---tests
++---CMakeLists.txt
++---main.cpp
++---Main.qml
+
+engine/local and engine/remote are for the drivers.
+
+color roles:
+#00F0FF (Highlight / Active Glow)
+#00A3E0 (Primary Action Button Fill / Accent Borders)
+#0077A8 (Pressed / Down State)
+#00B4F0 (Hover Accent)
+#0E222F (Dark Well / Mode Pill)
+#0E222F (Context Badge / Chip Background)
+#132B3A (Stepper Active Tile)
+#0F2432 (Unload / Secondary Button Well)
+
+We need to add a border around the text that get a color. The color of the border should be black. 
+
+In the app directory will go the qml/cpp/h files, they will be grouped like python modules where .qml,.h,.cpp are grouped by functionality.
+If there is a need for more folder/module locations, we can expand.
+
+We do not want to forget anything in the tests, such as ToolTips and other ui tools that help the user. Even if the class doesn't have it, but supports it, we'll want to have a test for at least the tooltips.
+We want to make sure that everything conforms to Dry, don't repeat yourself philosophies.
+Security before performance. Make sure that everything is secure and we aren't reading and writing where we shouldn't.
+Memory concerns before security. We should always unload or free or destory anything we create in memory.
+Even if the code doesn't conform to this, the tests should take this into account and we can write the code to pass the tests.
+All files created are temp and you should use Qt::StandardLocations::TempLocations/uuid/  to write all files to for the tests and test app directory structures needed by certain parts.
+The Main Window should have dimensions at least 1100x800 1080 is close to the presentation we want, it's still a bit too small with the editor panel and prompt builder together, to clearly show all the controls. 1084 is the actual min.  
+All tests should check for the display text in the ui control. if we add the text to it in code, the test should check that out.  
+Icons that we are adding should be checked in tests also.  
+While qt does the job of making sure these things are displayed the way we want, these tests to make sure we don't change it without it being planned.
+
+

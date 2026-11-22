@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Story Builder Studio
+Comment=Offline-capable generative narrative and multimedia studio
+Exec=appStoryBuilderStudio
+Icon=storybuilderstudio
+Terminal=false
+Categories=AudioVideo;Video;Graphics;Qt;
+StartupWMClass=appStoryBuilderStudio

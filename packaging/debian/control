@@ -1,0 +1,22 @@
+Source: storybuilderstudio
+Section: video
+Priority: optional
+Maintainer: Mike Ramirez <gufymike@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.20),
+ ninja-build,
+ g++,
+ qt6-base-dev,
+ qt6-declarative-dev,
+ qt6-multimedia-dev,
+ libqt6svg6-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/gufymike/StoryBuilderStudio
+
+Package: storybuilderstudio
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Offline-capable generative narrative and multimedia studio
+ Story Builder Studio orchestrates local multi-modal AI plugins and
+ remote REST APIs for script, image, audio, and video generation.
