@@ -255,6 +255,7 @@ qt_add_qml_module(StoryBuilderStudioLib
     RESOURCES app.ico
     RESOURCES app.icns
     RESOURCES app.png
+    RESOURCES docs/index.html
 )
 
 # ============================================================================
@@ -445,6 +446,8 @@ install(FILES "${CMAKE_SOURCE_DIR}/README.md"
 install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
+    install(FILES "${CMAKE_SOURCE_DIR}/docs/index.html"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}/docs/")
 
 # ==============================================================================
 # Windows Deployment Components: NonQtLibs & QtRuntime

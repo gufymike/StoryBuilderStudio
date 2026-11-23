@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Builder Studio - User Manual & Technical Reference</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        studio: {
+                            base: '#0D0D0D',
+                            panel: '#141414',
+                            surface: '#181818',
+                            border: '#262626',
+                            hover: '#222222',
+                            accent: '#00FF66',
+                            accentMuted: '#00B344',
+                            accentGlow: 'rgba(0, 255, 102, 0.15)',
+                            text: '#E5E5E5',
+                            muted: '#8A8A8A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121212;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2A2A2A;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00B344;
+        }
+        .code-block {
+            background-color: #0d0d0d;
+            border: 1px solid #222;
+        }
+        .badge-accent {
+            background: rgba(0, 255, 102, 0.08);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            color: #00FF66;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-studio-base text-studio-text font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top Header Bar -->
+    <header class="h-14 border-b border-studio-border bg-studio-panel/90 backdrop-blur sticky top-0 z-50 px-4 md:px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent font-bold">
+                <i class="fa-solid fa-film"></i>
+            </div>
+            <div>
+                <span class="font-bold tracking-tight text-white flex items-center gap-2">
+                    Story Builder Studio
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono badge-accent">BETA v1.0</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <span class="hidden sm:inline-flex text-xs text-studio-muted font-mono items-center gap-1.5">
+                <i class="fa-solid fa-microchip text-studio-accent"></i> Qt 6.8+ / C++20 · Win / Linux / macOS
+            </span>
+            <button onclick="toggleSetupModal(true)" class="px-3 py-1.5 text-xs font-semibold rounded bg-studio-surface hover:bg-studio-hover border border-studio-border text-white flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-vial-circle-check text-studio-accent"></i> Model Path Tester
+            </button>
+        </div>
+    </header>
+
+    <!-- App Container -->
+    <div class="flex-1 flex max-w-7xl w-full mx-auto">
+
+        <!-- Sticky Sidebar Navigation -->
+        <aside class="w-72 border-r border-studio-border bg-studio-panel p-4 flex flex-col shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto hidden md:flex">
+            <!-- Search bar -->
+            <div class="relative mb-4">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-studio-muted text-xs"></i>
+                <input type="text" id="manualSearch" placeholder="Search manual..."
+                       class="w-full bg-studio-base border border-studio-border rounded px-8 py-1.5 text-xs text-white focus:outline-none focus:border-studio-accent placeholder-studio-muted">
+            </div>
+
+            <nav class="space-y-6 text-xs" id="sidebarNav">
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-compass text-studio-accent"></i> Core Concepts
+                    </h4>
+                    <ul class="space-y-1">
+                        <li><a href="#overview" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Vision & Production Methods</a></li>
+                        <li><a href="#directories" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Model Directory Structures</a></li>
+                        <li><a href="#audit-ledger" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Unified Audit Ledger</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-terminal text-studio-accent"></i> Prompting & Story
+                    </h4>
+                    <ul class="space-y-1">
+                        <li><a href="#prompt-builder" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Prompt Composer & Tray</a></li>
+                        <li><a href="#chatml-syntax" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">ChatML & Context Management</a></li>
+                        <li><a href="#think-reasoning" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">&lt;think&gt; Isolation & UUIDs</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-shapes text-studio-accent"></i> Generation Engines
+                    </h4>
+                    <ul class="space-y-1">
+                        <li><a href="#mod-script" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Script: Local LLM & REST APIs</a></li>
+                        <li><a href="#mod-image" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Images: FLUX.1 Schnell & VAE</a></li>
+                        <li><a href="#mod-video" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Video: Wan 2.1 DiT (T2V & I2V)</a></li>
+                        <li><a href="#mod-speech" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Speech: Kokoro Script TTS</a></li>
+                        <li><a href="#mod-sfx" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Audio: audio.cpp & Waveform</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles text-studio-accent"></i> Custom Models & Training
+                    </h4>
+                    <ul class="space-y-1">
+                        <li><a href="#custom-training" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Signature Looks & Why Train</a></li>
+                        <li><a href="#training-tools" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">LLaMA-Factory, OneTrainer & Diffusion Tools</a></li>
+                        <li><a href="#training-basics" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Getting Started & Scaling Up</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wrench text-studio-accent"></i> Operations & Reference
+                    </h4>
+                    <ul class="space-y-1">
+                        <li><a href="#troubleshooting" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Troubleshooting & Plugins</a></li>
+                        <li><a href="#shortcuts" class="nav-link block px-2.5 py-1.5 rounded hover:bg-studio-hover text-studio-text hover:text-white transition">Keyboard Shortcuts</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-6 md:p-10 max-w-4xl overflow-x-hidden space-y-16">
+
+            <!-- Section 1: Overview & Vision -->
+            <section id="overview" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 01</span>
+                </div>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight mb-4">Tell Your Story, Your Way</h1>
+                <p class="text-sm text-studio-text leading-relaxed mb-4">
+                    <strong class="text-white">Story Builder Studio</strong> is built around a single idea: <strong class="text-studio-accent">helping storytellers tell their story their way</strong>. Whether you are drafting a serialized screenplay, building an animated visual novel, or producing narrated video episodes, the studio keeps your scripts, storyboards, prompts, and generated media organized inside self-contained local project folders—without locking you into a single cloud platform or proprietary workflow.
+                </p>
+                <p class="text-sm text-studio-muted leading-relaxed mb-6">
+                    Built natively with Qt 6 Quick/QML and C++20 across Windows (MSVC &amp; LLVM-MinGW), Linux, and macOS, Story Builder Studio gives you flexible production methods you can mix and match to fit your hardware, budget, and creative vision:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <div class="text-studio-accent text-lg mb-2"><i class="fa-solid fa-cloud-bolt"></i></div>
+                        <h3 class="font-bold text-white text-sm mb-1">1. Remote &amp; Local REST APIs</h3>
+                        <p class="text-xs text-studio-muted leading-relaxed">Works immediately out of the box with zero extra AI libraries. Connect to Google Gemini, OpenAI, local Ollama servers, or custom OpenAI-compatible REST endpoints using environment-variable API keys.</p>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <div class="text-studio-accent text-lg mb-2"><i class="fa-solid fa-laptop-code"></i></div>
+                        <h3 class="font-bold text-white text-sm mb-1">2. Offline C++ Local Plugins</h3>
+                        <p class="text-xs text-studio-muted leading-relaxed">Run GGUF and ONNX models natively via optional plugins (<code class="text-neutral-300">llama.cpp</code>, <code class="text-neutral-300">stable-diffusion.cpp</code>, <code class="text-neutral-300">audio.cpp</code>, <code class="text-neutral-300">sherpa-onnx</code>) with no Python virtual environments required.</p>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <div class="text-studio-accent text-lg mb-2"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                        <h3 class="font-bold text-white text-sm mb-1">3. Custom-Trained Models</h3>
+                        <p class="text-xs text-studio-muted leading-relaxed">Drop your own fine-tuned LLMs, visual style LoRAs, and character checkpoints straight into your model directory to craft a distinctive, studio-grade aesthetic that is uniquely yours.</p>
+                    </div>
+                </div>
+
+                <div class="bg-studio-surface border-l-2 border-studio-accent p-3.5 rounded text-xs text-studio-muted">
+                    <strong class="text-white">Unified Project Control:</strong> Every method feeds into the same Episode/Series project tree, Storyboard manager, and ISO-8601 Audit Ledger—so you can draft with a cloud LLM, render concept frames with a local FLUX checkpoint, and narrate with Kokoro TTS in one cohesive workspace.
+                </div>
+            </section>
+
+            <!-- Section 2: Directory Layouts -->
+            <section id="directories" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 02</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Model Directory Topologies</h2>
+                <p class="text-sm text-studio-muted mb-3">
+                    When using optional local AI plugins, Story Builder Studio queries a standardized model tree in your system application data directory:
+                </p>
+                <ul class="text-xs text-studio-muted font-mono space-y-1 mb-4 pl-2">
+                    <li>• <span class="text-white">Windows:</span> <code class="text-studio-accent">%APPDATA%\StoryBuilderStudio\</code></li>
+                    <li>• <span class="text-white">Linux:</span> <code class="text-studio-accent">~/.local/share/StoryBuilderStudio/</code></li>
+                    <li>• <span class="text-white">macOS:</span> <code class="text-studio-accent">~/Library/Application Support/StoryBuilderStudio/</code></li>
+                </ul>
+
+                <div class="code-block rounded-lg p-4 font-mono text-xs text-neutral-300 mb-6 overflow-x-auto relative">
+                    <button onclick="copyCode(this)" class="absolute right-3 top-3 text-[11px] bg-studio-surface hover:bg-studio-hover border border-studio-border px-2 py-1 rounded text-studio-muted hover:text-white transition">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+<pre>StoryBuilderStudio/
+├── text/                         <span class="text-studio-muted"># Qwen / Llama / Custom GGUF models</span>
+│   ├── Qwen3-8B-Q4_K_M.gguf
+│   └── tokenizer.json
+├── images/
+│   └── flux/                     <span class="text-studio-muted"># FLUX image generation set (+ optional LoRAs)</span>
+│       ├── flux1-schnell-q4_k_m.gguf
+│       ├── ae.safetensors
+│       ├── clip_l.safetensors
+│       └── t5-v1_1-xxl-encoder-Q5_K_M.gguf
+├── video/
+│   └── wan/                      <span class="text-studio-muted"># Wan 2.1 DiT video generation set</span>
+│       ├── wan2.1_t2v_1.3b-q4_k_m.gguf
+│       ├── wan_2.1_vae.safetensors
+│       └── umt5-xxl-encoder-Q5_K_M.gguf
+└── audio/
+    ├── speech/Kokoro/            <span class="text-studio-muted"># Sherpa-ONNX TTS bundle</span>
+    │   ├── model.onnx
+    │   ├── voices.bin
+    │   ├── tokens.txt
+    │   ├── lexicon.txt
+    │   └── espeak-ng-data/
+    ├── sfx/                      <span class="text-studio-muted"># audio.cpp GGUF sounds</span>
+    └── bgm/</pre>
+                </div>
+
+                <div class="bg-studio-surface border-l-2 border-studio-accent p-3.5 rounded text-xs text-studio-muted">
+                    <strong class="text-white">Shared Universal T5:</strong> <code class="text-studio-accent">t5-v1_1-xxl-encoder-Q5_K_M.gguf</code> in <code class="text-white">images/flux/</code> is shared automatically with the video pipeline if a dedicated UMT5 encoder is not placed in the video folder.
+                </div>
+            </section>
+
+            <!-- Section 3: Audit Ledger & History -->
+            <section id="audit-ledger" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 03</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Unified Audit Ledger &amp; UUIDs</h2>
+                <p class="text-sm text-studio-muted mb-4">
+                    To maintain strict record keeping across long-form projects, each generation produces a canonical ISO-8601 UTC timestamp (e.g., <code class="text-studio-accent">2026-11-01T17:29:44.123Z</code>). This string acts as a shared UUID linking prompt inputs, generated assets, and intermediate reasoning tokens.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <div class="text-white font-bold mb-2 flex items-center justify-between">
+                            <span>prompt_history.json</span>
+                            <span class="text-[10px] text-studio-accent">User Payload</span>
+                        </div>
+                        <p class="text-studio-muted font-sans mb-3 text-[11px]">Stores dispatched prompts, target modalities, and the linked timestamp.</p>
+                        <div class="code-block p-2 rounded text-[11px] text-neutral-300">
+{<br>
+&nbsp;&nbsp;"timestamp": "2026-11-01T17:29:44.123Z",<br>
+&nbsp;&nbsp;"category": "script",<br>
+&nbsp;&nbsp;"promptText": "INT. CONTROL ROOM - NIGHT"<br>
+}
+                        </div>
+                    </div>
+
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <div class="text-white font-bold mb-2 flex items-center justify-between">
+                            <span>think_history.json</span>
+                            <span class="text-[10px] text-studio-accent">Internal Reasoning</span>
+                        </div>
+                        <p class="text-studio-muted font-sans mb-3 text-[11px]">Captures reasoning tags (&lt;think&gt;) isolated from the clean response.</p>
+                        <div class="code-block p-2 rounded text-[11px] text-neutral-300">
+{<br>
+&nbsp;&nbsp;"timestamp": "2026-11-01T17:29:44.123Z",<br>
+&nbsp;&nbsp;"category": "script",<br>
+&nbsp;&nbsp;"thinkText": "Need suspenseful dialogue pacing..."<br>
+}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Prompt Studio & ChatML -->
+            <section id="prompt-builder" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 04</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Prompt Composer &amp; Attachment Tray</h2>
+                <p class="text-sm text-studio-muted mb-4">
+                    The <code class="text-white">PromptBuilder.qml</code> component provides a unified interface across all local and remote engines. Attach character bibles, dialogue drafts, or reference frames directly into the generation pipeline.
+                </p>
+
+                <div class="bg-studio-panel border border-studio-border p-4 rounded-lg space-y-3 mb-6 text-xs">
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent font-bold shrink-0 mt-0.5">1</span>
+                        <div>
+                            <strong class="text-white block mb-0.5">Attachment Chip Tray:</strong>
+                            <p class="text-studio-muted leading-relaxed">Click <strong>Attach File(s)</strong> to attach <code class="text-neutral-300">.png</code>, <code class="text-neutral-300">.jpg</code>, <code class="text-neutral-300">.txt</code>, or <code class="text-neutral-300">.md</code> files. For video, attaching an image activates Image-to-Video (I2V) conditioning. For TTS, attaching scripts triggers continuous multi-sentence narration.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent font-bold shrink-0 mt-0.5">2</span>
+                        <div>
+                            <strong class="text-white block mb-0.5">Reusable Prompt Option Plates:</strong>
+                            <p class="text-studio-muted leading-relaxed">Expand the options drawer to toggle filesystem <code class="text-neutral-300">.prompt</code> modifiers (lighting, camera angles, pacing, genre styles) without retyping them on every shot.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent font-bold shrink-0 mt-0.5">3</span>
+                        <div>
+                            <strong class="text-white block mb-0.5">Safe Dispatch Preview Modal:</strong>
+                            <p class="text-studio-muted leading-relaxed">Before invocation, the estimator displays projected runtime, memory footprint, and token counts so you can confirm or adjust settings before dispatching.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="think-reasoning" class="border-t border-studio-border pt-6">
+                    <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-brain text-studio-accent"></i> &lt;think&gt; Token Isolation
+                    </h3>
+                    <p class="text-xs text-studio-muted leading-relaxed mb-4">
+                        When running reasoning models (such as Qwen 3 / DeepSeek), internal thoughts inside <code class="text-studio-accent">&lt;think&gt;...&lt;/think&gt;</code> are intercepted in <code class="text-white">LocalLlmEngine::generateText()</code>. They are stripped from the main editor stream and logged cleanly into <code class="text-white">think_history.json</code>, keeping your working screenplay free of scratchpad clutter.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 5: Script Generation -->
+            <section id="mod-script" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 05</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-4">Script &amp; Narrative Generation</h2>
+
+                <div class="space-y-4 mb-6 text-xs text-studio-muted">
+                    <p>Story Builder Studio supports both local and remote narrative backends through a unified driver contract:</p>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong class="text-white">Local LLM Plugin (GGUF):</strong> Uses <code class="text-neutral-300">llama.cpp</code> with sliding-window context management. Supports Qwen, Llama, and your own fine-tuned GGUF weights placed in <code class="text-neutral-300">text/</code>.</li>
+                        <li><strong class="text-white">Remote REST Bridges:</strong> Built-in support for Google Gemini (<code class="text-neutral-300">GEMINI_API_KEY</code>), OpenAI (<code class="text-neutral-300">OPENAI_API_KEY</code>), local Ollama instances, and custom REST endpoints (environment variables ending in <code class="text-neutral-300">_API_KEY</code> or <code class="text-neutral-300">_TOKEN</code>).</li>
+                    </ul>
+                </div>
+
+                <!-- ChatML structure -->
+                <div id="chatml-syntax" class="code-block p-4 rounded-lg text-xs font-mono text-neutral-300 mb-6">
+                    <span class="text-studio-muted">// Standard ChatML Conversation Template</span><br>
+                    <span class="text-studio-accent">&lt;|im_start|&gt;system</span><br>
+                    You are a professional narrative screenplay assistant in Story Builder Studio.<span class="text-studio-accent">&lt;|im_end|&gt;</span><br>
+                    <span class="text-studio-accent">&lt;|im_start|&gt;user</span><br>
+                    Draft scene 4 outline based on attached notes.<span class="text-studio-accent">&lt;|im_end|&gt;</span><br>
+                    <span class="text-studio-accent">&lt;|im_start|&gt;assistant</span>
+                </div>
+            </section>
+
+            <!-- Section 6: Image & Video Workflows -->
+            <section id="mod-image" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 06</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Visual Pipelines: FLUX.1 &amp; Wan 2.1</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <h3 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-image text-studio-accent"></i> FLUX.1 Schnell (Images)
+                        </h3>
+                        <p class="text-xs text-studio-muted mb-3 leading-relaxed">
+                            Generates 4 candidate variations per prompt using CLIP-L and T5-XXL text encoders alongside the FLUX DiT and Autoencoder. Compatible with custom-trained style and character LoRAs.
+                        </p>
+                        <ul class="text-[11px] text-neutral-400 space-y-1 font-mono">
+                            <li>• Latent Steps: 4 recommended (Schnell)</li>
+                            <li>• CFG Scale: 1.0 (Schnell guidance)</li>
+                            <li>• Output: 4 candidate thumbnails in Gallery</li>
+                        </ul>
+                    </div>
+
+                    <div id="mod-video" class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                        <h3 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-video text-studio-accent"></i> Wan 2.1 DiT (Video)
+                        </h3>
+                        <p class="text-xs text-studio-muted mb-3 leading-relaxed">
+                            Supports both Text-to-Video (T2V) and Image-to-Video (I2V) conditioning. Output renders directly into your project's <code class="text-neutral-300">assets/video/</code> directory.
+                        </p>
+                        <ul class="text-[11px] text-neutral-400 space-y-1 font-mono">
+                            <li>• T2V: Enter prompt and submit</li>
+                            <li>• I2V: Attach a .png/.jpg keyframe</li>
+                            <li>• Output: 16 FPS / 25 frames H.264 MP4</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 7: Audio & Speech -->
+            <section id="mod-speech" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 07</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Speech &amp; Sound Effects</h2>
+
+                <div class="bg-studio-panel border border-studio-border p-4 rounded-lg mb-6">
+                    <h3 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-microphone-lines text-studio-accent"></i> Kokoro TTS Script Narration
+                    </h3>
+                    <p class="text-xs text-studio-muted mb-3 leading-relaxed">
+                        Kokoro TTS extracts dialogue from the prompt field and any attached <code class="text-white">.txt</code> or <code class="text-white">.md</code> screenplay files. Markdown headers and formatting markers are stripped automatically, sentences are chunked with natural 150ms pauses, and the resulting 16-bit PCM WAV is saved to <code class="text-studio-accent">assets/audio/</code>.
+                    </p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
+                        <div class="bg-studio-surface p-2 rounded border border-studio-border">af_bella (ID 1)</div>
+                        <div class="bg-studio-surface p-2 rounded border border-studio-border">af_sarah (ID 3)</div>
+                        <div class="bg-studio-surface p-2 rounded border border-studio-border">am_adam (ID 5)</div>
+                        <div class="bg-studio-surface p-2 rounded border border-studio-border">bm_george (ID 9)</div>
+                    </div>
+                </div>
+
+                <div id="mod-sfx" class="bg-studio-panel border border-studio-border p-4 rounded-lg">
+                    <h3 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square text-studio-accent"></i> audio.cpp &amp; Waveform Inspection
+                    </h3>
+                    <p class="text-xs text-studio-muted leading-relaxed">
+                        Synthesize sound effects and background ambiances using GGUF weights (such as Stable-Audio). The integrated <code class="text-white">AudioWaveformModel</code> samples audio via <code class="text-neutral-300">QAudioDecoder</code>, rendering an interactive seekable waveform inside <code class="text-white">AudioWorkspaceWidget.qml</code>.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 8: Custom Model Training & Signature Looks -->
+            <section id="custom-training" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 08</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Training Custom Models &amp; Signature Looks</h2>
+                <p class="text-sm text-studio-text leading-relaxed mb-4">
+                    Off-the-shelf foundation models are great for prototyping, but <strong class="text-white">modern AI media studios and independent creators train their own models and LoRAs to achieve a unique, signature look</strong>. Custom training is how you lock in recurring characters, bespoke art direction, consistent worldbuilding lore, and a narrative voice that doesn't look or sound like everyone else's default output.
+                </p>
+                <p class="text-xs text-studio-muted leading-relaxed mb-6">
+                    You don't need a data center to start. Lightweight adapters (<strong class="text-white">LoRAs</strong>) let you teach an existing base model a new visual style, character face, or writing style on a single consumer GPU—and then drop the trained weights straight into Story Builder Studio.
+                </p>
+
+                <!-- Recommended Open-Source Trainers -->
+                <div id="training-tools" class="mb-8">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-toolbox text-studio-accent"></i> Recommended Open-Source Trainers
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-studio-panel border border-studio-border p-4 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-white text-sm">LLaMA-Factory</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded badge-accent">Text / LLM</span>
+                                </div>
+                                <p class="text-xs text-studio-muted leading-relaxed mb-3">
+                                    The go-to WebUI and CLI suite for fine-tuning Llama, Qwen, and Mistral models. Supports simple <strong class="text-neutral-200">QLoRA</strong> instruction tuning for dialogue/script style as well as full <strong class="text-neutral-200">CPT + SFT</strong> pipelines for deep worldbuilding lore.
+                                </p>
+                            </div>
+                            <a href="https://github.com/hiyouga/LLaMA-Factory" target="_blank" rel="noopener" class="text-xs text-studio-accent hover:underline font-mono inline-flex items-center gap-1">
+                                github.com/hiyouga/LLaMA-Factory <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+
+                        <div class="bg-studio-panel border border-studio-border p-4 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-white text-sm">OneTrainer</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded badge-accent">All-in-One Visual</span>
+                                </div>
+                                <p class="text-xs text-studio-muted leading-relaxed mb-3">
+                                    A clean desktop GUI built for training LoRAs and full fine-tunes across <strong class="text-neutral-200">FLUX.1, Stable Diffusion, SDXL, and video DiTs</strong>. Ideal for starting with presets and gradually unlocking advanced schedulers, masking, and concept balancing.
+                                </p>
+                            </div>
+                            <a href="https://github.com/Nerogar/OneTrainer" target="_blank" rel="noopener" class="text-xs text-studio-accent hover:underline font-mono inline-flex items-center gap-1">
+                                github.com/Nerogar/OneTrainer <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+
+                        <div class="bg-studio-panel border border-studio-border p-4 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-white text-sm">Kohya_ss &amp; AI-Toolkit</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded badge-accent">Diffusion LoRA</span>
+                                </div>
+                                <p class="text-xs text-studio-muted leading-relaxed mb-3">
+                                    Industry-standard diffusion teaching tools. <strong class="text-neutral-200">Ostris AI-Toolkit</strong> is purpose-built for fast FLUX.1 LoRA training with minimal config, while <strong class="text-neutral-200">Kohya_ss</strong> offers deep GUI control for SDXL and Stable Diffusion workflows.
+                                </p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <a href="https://github.com/ostris/ai-toolkit" target="_blank" rel="noopener" class="text-xs text-studio-accent hover:underline font-mono inline-flex items-center gap-1">
+                                    github.com/ostris/ai-toolkit <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                </a>
+                                <a href="https://github.com/bmaltais/kohya_ss" target="_blank" rel="noopener" class="text-xs text-studio-accent hover:underline font-mono inline-flex items-center gap-1">
+                                    github.com/bmaltais/kohya_ss <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Start Simple, Scale Up Roadmap -->
+                <div id="training-basics" class="bg-studio-panel border border-studio-border p-5 rounded-lg space-y-4 text-xs">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap text-studio-accent"></i> Training Basics: Start Simple, Scale as You Grow
+                    </h3>
+                    <p class="text-studio-muted leading-relaxed">
+                        The best way to learn model training is to run a small, focused experiment first and inspect the results inside Story Builder Studio before tackling complex multi-concept rigs.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-studio-surface border border-studio-border p-4 rounded-lg space-y-2">
+                            <div class="font-bold text-white flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-full bg-studio-accent text-black flex items-center justify-center text-[11px] font-bold">1</span>
+                                Your First Visual Style / Character LoRA
+                            </div>
+                            <ul class="text-studio-muted space-y-1.5 list-disc list-inside leading-relaxed">
+                                <li><strong class="text-neutral-200">Curate 15–30 clean images:</strong> Consistent subject or art style, varied angles/lighting, no watermarks.</li>
+                                <li><strong class="text-neutral-200">Caption clearly:</strong> Pair each image with a matching <code class="text-neutral-300">.txt</code> file using a unique trigger word (e.g., <code class="text-studio-accent">sbs_noir_style</code>).</li>
+                                <li><strong class="text-neutral-200">Train with defaults:</strong> Load the built-in FLUX/SD LoRA preset in OneTrainer or AI-Toolkit (rank 16, ~1,000–1,500 steps) and generate sample previews every 250 steps so you can stop before overfitting.</li>
+                                <li><strong class="text-neutral-200">Test in Studio:</strong> Copy the resulting <code class="text-neutral-300">.safetensors</code> adapter into your Studio image pipeline and evaluate how it responds to your prompt plates.</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-studio-surface border border-studio-border p-4 rounded-lg space-y-2">
+                            <div class="font-bold text-white flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-full bg-studio-accent text-black flex items-center justify-center text-[11px] font-bold">2</span>
+                                Your First Story / Voice LLM Fine-Tune
+                            </div>
+                            <ul class="text-studio-muted space-y-1.5 list-disc list-inside leading-relaxed">
+                                <li><strong class="text-neutral-200">Build a small JSONL dataset:</strong> Collect 100–300 prompt-and-scene pairs written in your target pacing, formatting, and tone.</li>
+                                <li><strong class="text-neutral-200">Run QLoRA in LLaMA-Factory:</strong> Launch the WebUI (<code class="text-neutral-300">llamafactory-cli webui</code>), pick a 7B–8B base model, and run a 2–3 epoch SFT pass.</li>
+                                <li><strong class="text-neutral-200">Merge &amp; Quantize to GGUF:</strong> Export the merged model and convert it to <code class="text-neutral-300">Q4_K_M.gguf</code> using <code class="text-neutral-300">llama.cpp</code>'s converter.</li>
+                                <li><strong class="text-neutral-200">Drop into Studio:</strong> Place the <code class="text-neutral-300">.gguf</code> and <code class="text-neutral-300">tokenizer.json</code> inside <code class="text-studio-accent">StoryBuilderStudio/text/</code> and select it in Model Settings.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-studio-base border border-studio-border p-3.5 rounded text-studio-muted leading-relaxed">
+                        <strong class="text-white"><i class="fa-solid fa-layer-group text-studio-accent mr-1"></i> Scaling to Complex Setups:</strong> Once you are comfortable with single-concept LoRAs, these same trainers let you graduate to multi-character datasets with regularization images, masked loss for framing/viewpoints, Continued Pre-Training (CPT) on entire series bibles before SFT, and stacked LoRA weights—growing alongside your production ambitions.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 9: Troubleshooting & FAQ -->
+            <section id="troubleshooting" class="doc-section scroll-mt-20">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Chapter 09</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight mb-4">Troubleshooting &amp; Runtime FAQ</h2>
+
+                <div class="space-y-3 text-xs">
+                    <details class="bg-studio-panel border border-studio-border rounded-lg p-3 group">
+                        <summary class="font-bold text-white cursor-pointer flex items-center justify-between">
+                            <span>Local AI Engines Not Showing Up in Settings</span>
+                            <i class="fa-solid fa-chevron-down text-studio-muted group-open:rotate-180 transition"></i>
+                        </summary>
+                        <p class="text-studio-muted mt-2 pt-2 border-t border-studio-border leading-relaxed">
+                            Open <strong>Help &rarr; About</strong> to see which local plugins are loaded vs. missing. By default, Story Builder Studio builds in Core/REST-only mode so it compiles anywhere with just Qt 6. To include local C++ engines, rebuild using <code class="text-studio-accent">./scripts/build.sh --all</code> (Linux/macOS) or <code class="text-studio-accent">.\scripts\build.ps1 -All</code> (Windows), or use <code class="text-white">--with="llama.cpp,kokoro"</code> to pick specific libraries.
+                        </p>
+                    </details>
+
+                    <details class="bg-studio-panel border border-studio-border rounded-lg p-3 group">
+                        <summary class="font-bold text-white cursor-pointer flex items-center justify-between">
+                            <span>DLL Load Error: "Cannot load library ... qtquickdialogsplugin.dll / QtMultimedia"</span>
+                            <i class="fa-solid fa-chevron-down text-studio-muted group-open:rotate-180 transition"></i>
+                        </summary>
+                        <p class="text-studio-muted mt-2 pt-2 border-t border-studio-border leading-relaxed">
+                            Verify that <code class="text-studio-accent">Qt6QuickDialogs2.dll</code>, <code class="text-studio-accent">Qt6Multimedia.dll</code>, and <code class="text-studio-accent">Qt6MultimediaQuick.dll</code> are present alongside the executable (or that your Qt <code class="text-white">bin/</code> directory is on <code class="text-white">PATH</code> via <code class="text-white">scripts/run.bat</code>), and that the <code class="text-white">QtQuick/Dialogs/</code> and <code class="text-white">QtMultimedia/</code> QML folders are intact.
+                        </p>
+                    </details>
+
+                    <details class="bg-studio-panel border border-studio-border rounded-lg p-3 group">
+                        <summary class="font-bold text-white cursor-pointer flex items-center justify-between">
+                            <span>Local GGUF Model Takes a Long Time to Load on Windows</span>
+                            <i class="fa-solid fa-chevron-down text-studio-muted group-open:rotate-180 transition"></i>
+                        </summary>
+                        <p class="text-studio-muted mt-2 pt-2 border-t border-studio-border leading-relaxed">
+                            Windows Defender Real-Time Protection scans multi-gigabyte <code class="text-white">.gguf</code> files on initial read. Add your <code class="text-studio-accent">%APPDATA%\StoryBuilderStudio\</code> folder to Windows Defender's Exclusions list, and keep context size bounded to 4096 or 8192 unless you specifically need a larger window.
+                        </p>
+                    </details>
+
+                    <details class="bg-studio-panel border border-studio-border rounded-lg p-3 group">
+                        <summary class="font-bold text-white cursor-pointer flex items-center justify-between">
+                            <span>Where do deleted assets go?</span>
+                            <i class="fa-solid fa-chevron-down text-studio-muted group-open:rotate-180 transition"></i>
+                        </summary>
+                        <p class="text-studio-muted mt-2 pt-2 border-t border-studio-border leading-relaxed">
+                            Assets deleted via the workspace context menu are permanently removed from the active project's <code class="text-white">assets/</code> directory after a strict path verification check ensuring no files outside the project root can be affected.
+                        </p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- Section 10: Keyboard Shortcuts -->
+            <section id="shortcuts" class="doc-section scroll-mt-20 border-t border-studio-border pt-10">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-mono text-studio-accent uppercase tracking-wider">Reference</span>
+                </div>
+                <h2 class="text-xl font-bold text-white tracking-tight mb-4">Workspace Keyboard Shortcuts</h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">New Script Document</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + N</kbd>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">Save Script Document</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + S</kbd>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">Find Text in Editor</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + F</kbd>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">Replace Text in Editor</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + H</kbd>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">Bold Markdown Formatting</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + B</kbd>
+                    </div>
+                    <div class="bg-studio-panel border border-studio-border p-3 rounded flex justify-between items-center">
+                        <span class="text-studio-muted">Italic Markdown Formatting</span>
+                        <kbd class="px-2 py-1 bg-studio-surface border border-studio-border rounded font-mono text-white text-[11px]">Ctrl + I</kbd>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Interactive Path Tester Modal -->
+    <div id="pathModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-studio-panel border border-studio-border rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="toggleSetupModal(false)" class="absolute right-4 top-4 text-studio-muted hover:text-white text-sm">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-6 h-6 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent text-xs">
+                    <i class="fa-solid fa-vial"></i>
+                </div>
+                <h3 class="font-bold text-white text-sm">Interactive Model Path Tester</h3>
+            </div>
+
+            <p class="text-xs text-studio-muted mb-4">
+                Select your operating system and engine modality to review required folder paths, mandatory filenames, and fallback chains.
+            </p>
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-studio-muted uppercase mb-1">Operating System:</label>
+                        <select id="osSelect" onchange="updateTesterOutput()" class="w-full bg-studio-base border border-studio-border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-studio-accent">
+                            <option value="win">Windows</option>
+                            <option value="linux">Linux</option>
+                            <option value="mac">macOS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-studio-muted uppercase mb-1">Target Engine:</label>
+                        <select id="engineSelect" onchange="updateTesterOutput()" class="w-full bg-studio-base border border-studio-border rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-studio-accent">
+                            <option value="script">Script (Local LLM / GGUF)</option>
+                            <option value="image">Image (FLUX.1 Schnell)</option>
+                            <option value="video">Video (Wan 2.1 DiT)</option>
+                            <option value="speech">Speech (Kokoro TTS)</option>
+                            <option value="audio">Sound FX (audio.cpp)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="code-block p-3 rounded text-xs font-mono space-y-1 text-neutral-300" id="testerResult">
+                    <!-- Populated dynamically via JavaScript -->
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="toggleSetupModal(false)" class="px-4 py-1.5 rounded bg-studio-accent hover:bg-studio-accentMuted text-black font-semibold text-xs transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-studio-border bg-studio-panel py-6 text-center text-xs text-studio-muted">
+        <p>Story Builder Studio Technical Documentation &copy; 2026. Built with Qt 6 &amp; modern C++20.</p>
+    </footer>
+
+    <!-- Interactive Client Scripts -->
+    <script>
+        // Copy button utility
+        function copyCode(btn) {
+            const pre = btn.parentElement.querySelector('pre');
+            if (!pre) return;
+            const text = pre.innerText;
+
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check text-studio-accent"></i> Copied!';
+                setTimeout(() => { btn.innerHTML = orig; }, 1800);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Search filtering for manual sections
+        document.getElementById('manualSearch').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            const sections = document.querySelectorAll('.doc-section');
+            const navLinks = document.querySelectorAll('#sidebarNav a');
+
+            sections.forEach(sec => {
+                const text = sec.innerText.toLowerCase();
+                sec.style.display = (query === "" || text.includes(query)) ? "" : "none";
+            });
+
+            navLinks.forEach(link => {
+                const text = link.innerText.toLowerCase();
+                link.parentElement.style.display = (query === "" || text.includes(query)) ? "" : "none";
+            });
+        });
+
+        const osBasePaths = {
+            win: "%APPDATA%\\StoryBuilderStudio\\",
+            linux: "~/.local/share/StoryBuilderStudio/",
+            mac: "~/Library/Application Support/StoryBuilderStudio/"
+        };
+
+        const engineRequirements = {
+            script: {
+                subpath: "text/",
+                files: ["Qwen3-8B-Q4_K_M.gguf (or custom fine-tuned .gguf)", "tokenizer.json"],
+                notes: "Local GGUF engine uses sliding-window context. Supports base Qwen/Llama models as well as custom LLaMA-Factory exports."
+            },
+            image: {
+                subpath: "images/flux/",
+                files: ["flux1-schnell-q4_k_m.gguf", "ae.safetensors", "clip_l.safetensors", "t5-v1_1-xxl-encoder-Q5_K_M.gguf"],
+                notes: "All 4 base components must be present inside images/flux/ for manifest verification to pass."
+            },
+            video: {
+                subpath: "video/wan/",
+                files: ["wan2.1_t2v_1.3b-q4_k_m.gguf", "wan_2.1_vae.safetensors", "umt5-xxl-encoder-Q5_K_M.gguf"],
+                notes: "If umt5 is omitted, Studio automatically falls back to images/flux/t5-v1_1-xxl-encoder."
+            },
+            speech: {
+                subpath: "audio/speech/Kokoro/",
+                files: ["model.onnx", "voices.bin", "tokens.txt", "lexicon.txt", "espeak-ng-data/"],
+                notes: "WAV renders are auto-saved to the active project's assets/audio/ folder as 16-bit PCM."
+            },
+            audio: {
+                subpath: "audio/sfx/",
+                files: ["*.gguf (e.g., stable-audio-3.gguf)"],
+                notes: "Scans all .gguf files in the directory and automatically populates the Audio model selector."
+            }
+        };
+
+        function updateTesterOutput() {
+            const os = document.getElementById('osSelect').value;
+            const sel = document.getElementById('engineSelect').value;
+            const data = engineRequirements[sel];
+            const fullPath = osBasePaths[os] + (os === "win" ? data.subpath.replace(/\//g, "\\") : data.subpath);
+            const resultBox = document.getElementById('testerResult');
+
+            resultBox.innerHTML = `
+                <div><span class="text-studio-muted">Path:</span> <span class="text-studio-accent">${fullPath}</span></div>
+                <div><span class="text-studio-muted">Files:</span> <span class="text-white">${data.files.join(', ')}</span></div>
+                <div class="mt-2 text-[11px] text-neutral-400 font-sans border-t border-neutral-800 pt-1.5"><i class="fa-solid fa-circle-info text-studio-accent mr-1"></i> ${data.notes}</div>
+            `;
+        }
+
+        function toggleSetupModal(show) {
+            const modal = document.getElementById('pathModal');
+            if (show) {
+                updateTesterOutput();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Initialize default view
+        updateTesterOutput();
+    </script>
+</body>
+</html>

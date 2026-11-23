@@ -1,8 +1,4 @@
-#    if(MINGW)
-#        target_link_options(${TEST_TARGET} PRIVATE -mconsole)
-#    elseif(MSVC)
-#	target_link_options(${TEST_TARGET} PRIVATE /SUBSYSTEM:CONSOLE)
-#    endif()
+
 add_executable(test_SettingsManager
         tests/test_SettingsManager.cpp
         app/settings/settingsmanager.cpp
