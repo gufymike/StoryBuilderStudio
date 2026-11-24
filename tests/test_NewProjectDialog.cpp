@@ -13,11 +13,16 @@
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
+#include <QQmlApplicationEngine>
+#include <QQuickWindow>
+#include <QQmlContext>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QDir>
 #include <QUrl>
 
+#include "projectmanager.h"
+#include "seriescontainer.h"
 #include "ui_constants.h"
 
 class Test_NewProjectDialog : public QObject
@@ -31,6 +36,8 @@ private slots:
     void testComponentInstantiation();
     void testSmartEmailExtraction();
     void testResetAndOpenDefaults();
+    void testOptionalEmailAndAuthorAutoFill();
+
 
 private:
     QQmlEngine m_engine;
@@ -118,6 +125,61 @@ void Test_NewProjectDialog::testResetAndOpenDefaults()
     QObject *versionField = dialog->findChild<QObject*>(UI::NewProjectDialog::VersionField);
     QVERIFY2(versionField != nullptr, "UI Component Missing: 'versionField' not found.");
     QCOMPARE(versionField->property("text").toString(), QStringLiteral("1.0"));
+}
+
+void Test_NewProjectDialog::testOptionalEmailAndAuthorAutoFill()
+{
+    QTemporaryDir tempSeriesDir;
+    QVERIFY(tempSeriesDir.isValid());
+
+    SeriesContainer seriesContainer;
+    QVERIFY(seriesContainer.createNewContainer(tempSeriesDir.path(), QStringLiteral("Test Series"), QStringLiteral("Hook"), QStringLiteral("Desc")));
+
+    ProjectManager projectManager(tempSeriesDir.path());
+
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("seriesContainer"), &seriesContainer);
+    engine.rootContext()->setContextProperty(QStringLiteral("projectManager"), &projectManager);
+
+    QQuickWindow window;
+    window.resize(700, 750);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/qt/qml/StoryBuilderStudio/app/core/NewProjectDialog.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QObject *dialogObj = component.create();
+    QVERIFY(dialogObj != nullptr);
+    dialogObj->setProperty("parent", QVariant::fromValue(window.contentItem()));
+    dialogObj->setProperty("targetSeriesDirectory", tempSeriesDir.path());
+    QMetaObject::invokeMethod(dialogObj, "open");
+    QCoreApplication::processEvents();
+
+    QObject *projNameField = dialogObj->findChild<QObject *>(QStringLiteral("projNameField"));
+    QObject *authorField   = dialogObj->findChild<QObject *>(QStringLiteral("authorField"));
+    QObject *emailField    = dialogObj->findChild<QObject *>(QStringLiteral("emailField"));
+    QVERIFY(projNameField && authorField && emailField);
+
+    // 1. Verify smart 'Name <email>' auto-fill parser
+    authorField->setProperty("text", QStringLiteral("Mike Ramirez <mike@example.com>"));
+    QCoreApplication::processEvents();
+    QCOMPARE(emailField->property("text").toString(), QStringLiteral("mike@example.com"));
+
+    // 2. Clear email and verify episode creation succeeds with empty email
+    projNameField->setProperty("text", QStringLiteral("Pilot Episode"));
+    authorField->setProperty("text", QStringLiteral("Mike Ramirez"));
+    emailField->setProperty("text", QString());
+    QCoreApplication::processEvents();
+
+    QMetaObject::invokeMethod(dialogObj, "accept");
+    QCoreApplication::processEvents();
+
+    QVERIFY(projectManager.isProjectOpen());
+    QCOMPARE(projectManager.projectName(), QStringLiteral("Pilot Episode"));
+    QVERIFY(projectManager.email().isEmpty());
+
+    delete dialogObj;
 }
 
 QTEST_MAIN(Test_NewProjectDialog)

@@ -31,10 +31,12 @@ private slots:
     void testImageOptionsSchema();
     void testVideoOptionsSchema();
     void testOptionMutation();
+    void testGenerateWhenUnloadedEmitsError();
 
     // Load & Resource Lifecycle
     void testLoadMissingWeightsEmitsError();
     void testUnloadClearsContextState();
+
 
 private:
     QString m_testSessionDir;
@@ -164,6 +166,18 @@ void Test_LocalSdEngine::testUnloadClearsContextState()
 #endif
     QCOMPARE(engine.activeVideoArch(), LocalSdEngine::VIDEO_ARCH_NONE);
     QVERIFY(engine.loadedModelName().isEmpty());
+}
+
+void Test_LocalSdEngine::testGenerateWhenUnloadedEmitsError()
+{
+    LocalSdEngine engine;
+    QSignalSpy errorSpy(&engine, &LocalSdEngine::engineError);
+    QSignalSpy finishedSpy(&engine, &LocalSdEngine::generationFinished);
+
+    engine.generate(QStringLiteral("a futuristic skyline"), QString(), {}, QString(), {});
+
+    QCOMPARE(errorSpy.count(), 1);
+    QCOMPARE(finishedSpy.count(), 0);
 }
 
 QTEST_MAIN(Test_LocalSdEngine)

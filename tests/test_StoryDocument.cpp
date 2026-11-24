@@ -30,6 +30,7 @@ private slots:
     void testSaveAndLoadMarkdown();
     void testSaveAndLoadHtml();
     void testLoadNonExistentFileFails();
+    void testSaveTruncatesShorterOverwrite();
 
 private:
     QString m_testSessionDir;
@@ -118,6 +119,24 @@ void Test_StoryDocument::testLoadNonExistentFileFails()
     bool loaded = doc.loadLocalFile(m_testSessionDir + QStringLiteral("/non_existent_file.md"));
     QVERIFY(!loaded);
     QCOMPARE(failureSpy.count(), 1);
+}
+
+void Test_StoryDocument::testSaveTruncatesShorterOverwrite()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+    const QString filePath = tempDir.filePath(QStringLiteral("script.md"));
+
+    StoryDocument doc;
+    doc.setRawText(QStringLiteral("First version with a very long paragraph of scene dialogue."));
+    QVERIFY(doc.saveLocalFile(filePath, QStringLiteral("markdown")));
+
+    doc.setRawText(QStringLiteral("Short v2."));
+    QVERIFY(doc.saveLocalFile(filePath, QStringLiteral("markdown")));
+
+    StoryDocument reloaded;
+    QVERIFY(reloaded.loadLocalFile(filePath));
+    QCOMPARE(reloaded.rawText(), QStringLiteral("Short v2."));
 }
 
 QTEST_MAIN(Test_StoryDocument)

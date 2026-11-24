@@ -50,10 +50,14 @@ Rectangle {
             return mockCategoriesData[category] || []
         }
         if (typeof promptManager !== "undefined" && promptManager !== null) {
+            // Subscribe to availablePromptsChanged & project path updates so ListViews auto-refresh
+            const _reactivePrompts = promptManager.availablePrompts
+            const _reactiveSeries  = currentProjectPath
+            const _reactiveEpisode = currentEpisodePath
             if (typeof promptManager.getFilesForCategory === "function") {
                 return promptManager.getFilesForCategory(category)
             }
-            let items = promptManager.availablePrompts || []
+            let items = _reactivePrompts || []
             let fileList = []
             for (let i = 0; i < items.length; ++i) {
                 if (items[i].category === category && items[i].fileName) {

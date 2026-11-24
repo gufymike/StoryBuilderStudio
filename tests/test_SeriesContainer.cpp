@@ -39,6 +39,7 @@ private slots:
     void testCreateNewSubProjectScaffolding();
     void testRemoveSubProjectReindexesDisplayOrder();
     void testAddExistingSubProjectDetectsDuplicates();
+    void testDeleteSeriesDirectoryAndSafetyGuards();
 
     // Metadata & Signals
     void testCreatorAndCoCreatorsSignals();
@@ -244,6 +245,34 @@ void Test_SeriesContainer::testCreateAndLoadHandleFileUrls()
     SeriesContainer loader;
     QVERIFY2(loader.loadFromDirectory(fileUrl), "loadFromDirectory() failed when given a file:// URL.");
     QCOMPARE(QDir::cleanPath(loader.rootDirectory()), expectedPath);
+}
+
+void Test_SeriesContainer::testDeleteSeriesDirectoryAndSafetyGuards()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    const QString validSeries = tempRoot.filePath(QStringLiteral("test_series"));
+    const QString nonSeries   = tempRoot.filePath(QStringLiteral("random_folder"));
+    QDir().mkpath(nonSeries);
+
+    SeriesContainer container;
+    QVERIFY(container.createNewContainer(validSeries, QStringLiteral("Test Series"), QStringLiteral("Hook"), QStringLiteral("Synopsis")));
+    QVERIFY(QDir(validSeries).exists());
+
+    // Must refuse directories without a series manifest
+    QSignalSpy errSpy(&container, &SeriesContainer::manifestError);
+    QVERIFY(!container.deleteSeriesDirectory(nonSeries));
+    QVERIFY(QDir(nonSeries).exists());
+    QCOMPARE(errSpy.count(), 1);
+
+    // Must refuse user home directory
+    QVERIFY(!container.deleteSeriesDirectory(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
+
+    // Must delete valid series and clear active rootDirectory
+    QVERIFY(container.deleteSeriesDirectory(validSeries));
+    QVERIFY(!QDir(validSeries).exists());
+    QVERIFY(container.rootDirectory().isEmpty());
 }
 
 QTEST_MAIN(Test_SeriesContainer)

@@ -27,6 +27,7 @@ private slots:
     void testVideoEstimates();
     void testImageModeStepScaling();
     void testRemoteModeEstimates();
+    void testModalityAliasesAndConfiguredWeights();
 };
 
 void Test_InferenceEstimator::initTestCase()
@@ -113,6 +114,49 @@ void Test_InferenceEstimator::testRemoteModeEstimates()
     QCOMPARE(estimator.totalDiskSizeGb(), 0.0);
     QVERIFY(estimator.estimatedTotalSeconds() > 0);
     QVERIFY(!estimator.breakdownItems().isEmpty());
+}
+
+void Test_InferenceEstimator::testModalityAliasesAndConfiguredWeights()
+{
+    QStandardPaths::setTestModeEnabled(true);
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    // Create dummy FLUX files to verify disk size calculation
+    const QString diffPath = tempDir.filePath(QStringLiteral("flux1-schnell-Q2_K.gguf"));
+    const QString t5Path   = tempDir.filePath(QStringLiteral("t5-v1_1-xxl-encoder-Q5_K_M.gguf"));
+    {
+        QFile f1(diffPath);
+        QVERIFY(f1.open(QIODevice::WriteOnly));
+        f1.write(QByteArray(1024 * 1024, 'A')); // 1 MiB
+        QFile f2(t5Path);
+        QVERIFY(f2.open(QIODevice::WriteOnly));
+        f2.write(QByteArray(2 * 1024 * 1024, 'B')); // 2 MiB
+    }
+
+    const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(appData);
+    QSettings ini(appData + QStringLiteral("/workspace_config.ini"), QSettings::IniFormat);
+    ini.setValue(QStringLiteral("Images/DiffusionModelPath"), diffPath);
+    ini.setValue(QStringLiteral("Global/T5Path"), t5Path);
+    ini.sync();
+
+    InferenceEstimator estimator;
+    estimator.setEngineType(QStringLiteral("IMAGE"));
+    estimator.setSteps(4);
+
+    QCOMPARE(estimator.estimatedPeakRamGb(), 7.45);
+    QVERIFY(estimator.totalDiskSizeGb() > 0.002);
+    QVERIFY(!estimator.breakdownItems().isEmpty());
+    QVERIFY(estimator.breakdownItems().first().toMap().value(QStringLiteral("label")).toString().contains(QStringLiteral("T5")));
+
+    // Remote driver prefix check
+    estimator.setEngineType(QStringLiteral("gemini_image"));
+    QCOMPARE(estimator.estimatedPeakRamGb(), 0.0);
+    QCOMPARE(estimator.totalDiskSizeGb(), 0.0);
+
+    QFile::remove(appData + QStringLiteral("/workspace_config.ini"));
+    QStandardPaths::setTestModeEnabled(false);
 }
 
 QTEST_MAIN(Test_InferenceEstimator)

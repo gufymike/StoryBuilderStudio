@@ -34,6 +34,7 @@ private slots:
     void testPanelInitializationWithMockCategories();
     void testCheckboxToggleSignalEmission();
     void testLivePromptManagerIntegration();
+    void testCheckboxInjectsPromptFileContents();
 
 private:
     QString m_testSessionDir;
@@ -198,6 +199,97 @@ void Test_PromptOptionsPanel::testLivePromptManagerIntegration()
     QVERIFY(files.contains(QStringLiteral("sample.prompt")));
 }
 
+static QQuickItem *findVisualItem(QQuickItem *root, const QString &objectName)
+{
+    if (!root) return nullptr;
+    if (root->objectName() == objectName) return root;
+    const QList<QQuickItem *> children = root->childItems();
+    for (QQuickItem *child : children) {
+        if (QQuickItem *found = findVisualItem(child, objectName)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+void Test_PromptOptionsPanel::testCheckboxInjectsPromptFileContents()
+{
+    QTemporaryDir tempSeriesDir;
+    QVERIFY(tempSeriesDir.isValid());
+
+    const QString textPromptDir = tempSeriesDir.filePath(QStringLiteral("prompts/text"));
+    QVERIFY(QDir().mkpath(textPromptDir));
+
+    const QString expectedContent = QStringLiteral("35mm anamorphic lens, moody sci-fi lighting");
+    QFile promptFile(textPromptDir + QStringLiteral("/cinematic.prompt"));
+    QVERIFY(promptFile.open(QIODevice::WriteOnly | QIODevice::Text));
+    promptFile.write(expectedContent.toUtf8());
+    promptFile.close();
+
+    PromptManager promptManager;
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("promptManager"), &promptManager);
+
+    QQuickWindow window;
+    window.resize(720, 320);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/qt/qml/StoryBuilderStudio/app/promptbuilder/PromptOptionsPanel.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QObject *panelObj = component.create();
+    QVERIFY(panelObj != nullptr);
+    auto *panelItem = qobject_cast<QQuickItem *>(panelObj);
+    QVERIFY(panelItem != nullptr);
+    panelItem->setParentItem(window.contentItem());
+    panelItem->setSize(QSizeF(700, 260));
+
+    QMetaObject::invokeMethod(panelObj, "updateProjectPath",
+                              Q_ARG(QVariant, tempSeriesDir.path()),
+                              Q_ARG(QVariant, QString()));
+    QCoreApplication::processEvents();
+
+    QQuickItem *textCol = findVisualItem(panelItem, QStringLiteral("categoryColumn_text"));
+    QVERIFY2(textCol != nullptr, "Expected categoryColumn_text");
+
+    // 1. Verify built-in system prompt at index 0 (anime.prompt)
+    QQuickItem *checkBox = findVisualItem(textCol, QStringLiteral("optionCheckBox_0"));
+    QVERIFY2(checkBox != nullptr, "Expected optionCheckBox_0 (anime.prompt)");
+
+    QSignalSpy toggleSpy(panelObj, SIGNAL(promptOptionToggled(QString,bool)));
+    checkBox->setProperty("checked", true);
+    QCoreApplication::processEvents();
+
+    QCOMPARE(toggleSpy.count(), 1);
+    QList<QVariant> args = toggleSpy.takeFirst();
+    QCOMPARE(args.at(0).toString(), QStringLiteral("Japanese animation style, vibrant linework"));
+    QCOMPARE(args.at(1).toBool(), true);
+
+    // give a bit of time for list view to instantiate.
+    QMetaObject::invokeMethod(panelObj, "updateProjectPath",
+                              Q_ARG(QVariant, tempSeriesDir.path()),
+                              Q_ARG(QVariant, QString()));
+    QTest::qWait(20);
+    // 2. Scroll text ListView so index 4 (cinematic.prompt) is instantiated in the viewport
+    QQuickItem *textListView = findVisualItem(textCol, QStringLiteral("fileListView_text"));
+    QVERIFY2(textListView != nullptr, "Expected fileListView_text");
+    QMetaObject::invokeMethod(textListView, "positionViewAtEnd");
+    QCoreApplication::processEvents();
+
+    QQuickItem *customCheckBox = findVisualItem(textCol, QStringLiteral("optionCheckBox_4"));
+    QVERIFY2(customCheckBox != nullptr, "Expected optionCheckBox_4 (cinematic.prompt)");
+
+    customCheckBox->setProperty("checked", true);
+    QCoreApplication::processEvents();
+
+    QCOMPARE(toggleSpy.count(), 1);
+    args = toggleSpy.takeFirst();
+    QCOMPARE(args.at(0).toString(), expectedContent);
+    QCOMPARE(args.at(1).toBool(), true);
+
+    delete panelObj;
+}
 
 QTEST_MAIN(Test_PromptOptionsPanel)
 #include "test_PromptOptionsPanel.moc"

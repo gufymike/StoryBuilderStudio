@@ -14,12 +14,17 @@
 #include <QQmlComponent>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QQuickItem>
+#include <QQmlContext>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QDir>
 #include <QUrl>
 
+#include "seriescontainer.h"
+#include "settingsmanager.h"
 #include "ui_constants.h"
+
 class Test_SeriesLauncherModal : public QObject
 {
     Q_OBJECT
@@ -32,6 +37,7 @@ private slots:
     void testEmptySeriesListState();
     void testPopulatedSeriesListState();
     void testActionButtonsAndToolTips();
+    void testDeleteSeriesConfirmationAndDiskRemoval();
 
 private:
     QQmlEngine m_engine;
@@ -42,6 +48,7 @@ private:
 void Test_SeriesLauncherModal::initTestCase()
 {
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
+    QStandardPaths::setTestModeEnabled(true);
     QCoreApplication::setApplicationName(QStringLiteral("storyBuilderStudio"));
     QCoreApplication::setOrganizationName(QStringLiteral("5150wtmw"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("gufymike.com"));
@@ -66,6 +73,7 @@ void Test_SeriesLauncherModal::cleanupTestCase()
     if (!m_testSessionDir.isEmpty() && QDir(m_testSessionDir).exists()) {
         QDir(m_testSessionDir).removeRecursively();
     }
+    QStandardPaths::setTestModeEnabled(false);
 }
 
 void Test_SeriesLauncherModal::testComponentInstantiationAndHeader()
@@ -166,6 +174,85 @@ void Test_SeriesLauncherModal::testActionButtonsAndToolTips()
     QVERIFY(browseSeriesBtn->property("hovered").isValid());
 }
 
+static QQuickItem *findVisualItem(QQuickItem *root, const QString &objectName)
+{
+    if (!root) return nullptr;
+    if (root->objectName() == objectName) return root;
+    const QList<QQuickItem *> children = root->childItems();
+    for (QQuickItem *child : children) {
+        if (QQuickItem *found = findVisualItem(child, objectName)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+void Test_SeriesLauncherModal::testDeleteSeriesConfirmationAndDiskRemoval()
+{
+    const QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    const QString projectsRoot = QDir(homePath).filePath(QStringLiteral("StoryBuilderStudioProjects"));
+    QVERIFY(QDir().mkpath(projectsRoot));
+
+    // Prefix with 000_qtest_ so it sorts at index 0 without touching existing user series
+    const QString targetSeriesPath   = QDir(projectsRoot).filePath(QStringLiteral("000_qtest_doomed_series"));
+    const QString survivorSeriesPath = QDir(projectsRoot).filePath(QStringLiteral("001_qtest_keeper_series"));
+    const QString tempIniPath        = QDir(projectsRoot).filePath(QStringLiteral("000_qtest_config.ini"));
+
+    QDir(targetSeriesPath).removeRecursively();
+    QDir(survivorSeriesPath).removeRecursively();
+    QFile::remove(tempIniPath);
+
+    SeriesContainer seriesContainer;
+    QVERIFY(seriesContainer.createNewContainer(targetSeriesPath, QStringLiteral("Doomed Series"), QStringLiteral("Hook"), QStringLiteral("Desc")));
+    QVERIFY(seriesContainer.createNewContainer(survivorSeriesPath, QStringLiteral("Keeper Series"), QStringLiteral("Hook"), QStringLiteral("Desc")));
+    seriesContainer.refreshAvailableSeries();
+    const int initialCount = seriesContainer.availableSeries().size();
+    QVERIFY(initialCount >= 2);
+
+    SettingsManager settingsManager(tempIniPath);
+
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("seriesContainer"), &seriesContainer);
+    engine.rootContext()->setContextProperty(QStringLiteral("settingsManager"), &settingsManager);
+
+    QQuickWindow window;
+    window.resize(800, 600);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/qt/qml/StoryBuilderStudio/app/core/SeriesLauncherModal.qml")));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+
+    QObject *dialogObj = component.create();
+    QVERIFY(dialogObj != nullptr);
+    dialogObj->setProperty("parent", QVariant::fromValue(window.contentItem()));
+    QMetaObject::invokeMethod(dialogObj, "open");
+    QTest::qWait(50);
+
+    // Search the visual item tree (QQuickOverlay + ListView delegates)
+    QQuickItem *removeBtn = findVisualItem(window.contentItem(), QStringLiteral("removeSeriesBtn_0"));
+    QVERIFY2(removeBtn != nullptr, "Expected removeSeriesBtn_0 in SeriesLauncherModal");
+    QMetaObject::invokeMethod(removeBtn, "clicked");
+    QTest::qWait(50);
+
+    QObject *confirmDialog = dialogObj->findChild<QObject *>(QStringLiteral("confirmDeleteSeriesDialog"));
+    QVERIFY(confirmDialog != nullptr);
+    QCOMPARE(confirmDialog->property("opened").toBool(), true);
+    QVERIFY2(QDir(targetSeriesPath).exists(), "Series directory must not be deleted before confirmation");
+
+    QQuickItem *confirmDeleteBtn = findVisualItem(window.contentItem(), QStringLiteral("confirmDeleteSeriesBtn"));
+    QVERIFY2(confirmDeleteBtn != nullptr, "Expected confirmDeleteSeriesBtn inside confirmation dialog");
+    QMetaObject::invokeMethod(confirmDeleteBtn, "clicked");
+    QTest::qWait(50);
+
+    QVERIFY2(!QDir(targetSeriesPath).exists(), "Confirmed series directory should be deleted from disk");
+    QVERIFY2(QDir(survivorSeriesPath).exists(), "Unselected series directory must remain intact");
+    QCOMPARE(seriesContainer.availableSeries().size(), initialCount - 1);
+
+    delete dialogObj;
+    QDir(survivorSeriesPath).removeRecursively();
+    QFile::remove(tempIniPath);
+}
+
 QTEST_MAIN(Test_SeriesLauncherModal)
 #include "test_SeriesLauncherModal.moc"
-
