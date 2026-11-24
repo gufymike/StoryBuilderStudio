@@ -731,6 +731,47 @@ void SettingsManager::clearRecentFiles() {
     emit recentFilesChanged();
 }
 
+bool SettingsManager::removeKnownSeriesPath(const QString &seriesPath) {
+    QString trimmed = seriesPath.trimmed();
+    if (trimmed.isEmpty()) return false;
+
+    if (trimmed.startsWith(QStringLiteral("file://"), Qt::CaseInsensitive)) {
+        trimmed = QUrl(trimmed).toLocalFile();
+    }
+    const QString targetClean = QDir::cleanPath(QDir::fromNativeSeparators(trimmed));
+    bool removedAny = false;
+
+    if (m_settings) {
+        const QStringList keys{
+            QStringLiteral("Series/KnownPaths"),
+            QStringLiteral("Series/RecentSeries"),
+            QStringLiteral("History/KnownSeries")
+        };
+
+        for (const QString &key : keys) {
+            if (!m_settings->contains(key)) continue;
+            QStringList paths = m_settings->value(key).toStringList();
+            QStringList filtered;
+            filtered.reserve(paths.size());
+            for (const QString &entry : paths) {
+                QString entryNormalized = entry.startsWith(QStringLiteral("file://"), Qt::CaseInsensitive)
+                ? QUrl(entry).toLocalFile()
+                : entry;
+                if (QDir::cleanPath(QDir::fromNativeSeparators(entryNormalized))
+                        .compare(targetClean, Qt::CaseInsensitive) == 0) {
+                    removedAny = true;
+                } else {
+                    filtered.append(entry);
+                }
+            }
+            m_settings->setValue(key, filtered);
+        }
+        m_settings->sync();
+    }
+
+    return removedAny;
+}
+
 bool SettingsManager::isDriverConfigured(const QString &driverId, const QString &modelDirOrName) const
 {
     if (driverId == QStringLiteral("gemini_bridge") || driverId == QStringLiteral("openai_bridge")) {

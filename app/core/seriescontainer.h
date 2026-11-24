@@ -124,6 +124,7 @@ public:
     Q_INVOKABLE QString getSubProjectAbsolutePath(int index) const;
     Q_INVOKABLE QString getSubProjectTitle(int index) const;
     Q_INVOKABLE void refreshAvailableSeries();
+    Q_INVOKABLE bool deleteSeriesDirectory(const QString &seriesPath);
 
 signals:
     void nameChanged();

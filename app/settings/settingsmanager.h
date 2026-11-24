@@ -87,6 +87,7 @@ class SettingsManager : public QObject {
     Q_PROPERTY(QString ollamaModelName READ ollamaModelName WRITE setOllamaModelName NOTIFY ollamaModelNameChanged)
 
 
+
 public:
     explicit SettingsManager(QObject *parent = nullptr);
     explicit SettingsManager(const QString &customConfigPath, QObject *parent = nullptr);
@@ -171,6 +172,7 @@ public slots:
 
     Q_INVOKABLE void addRecentFile(const QString &filePath);
     Q_INVOKABLE void clearRecentFiles();
+    Q_INVOKABLE bool removeKnownSeriesPath(const QString &seriesPath);
 
     // Driver Validation & Config Builder
     void setOllamaEndpoint(const QString &endpoint);

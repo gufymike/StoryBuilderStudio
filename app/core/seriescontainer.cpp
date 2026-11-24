@@ -426,3 +426,68 @@ QString SeriesContainer::getSubProjectTitle(int index) const
     return m_subProjects.at(index).title;
 }
 
+bool SeriesContainer::deleteSeriesDirectory(const QString &seriesPath)
+{
+    QString trimmed = seriesPath.trimmed();
+    if (trimmed.isEmpty()) return false;
+
+    if (trimmed.startsWith(QStringLiteral("file://"), Qt::CaseInsensitive)) {
+        trimmed = QUrl(trimmed).toLocalFile();
+    }
+
+    const QString cleanPath = QDir::cleanPath(QDir::fromNativeSeparators(trimmed));
+    QFileInfo fi(cleanPath);
+    if (!fi.exists() || !fi.isDir()) {
+        emit manifestError(tr("Series directory does not exist: %1").arg(cleanPath));
+        return false;
+    }
+
+    // Safety guard: never allow deleting filesystem roots, user home/documents, or the parent projects container
+    QDir targetDir(cleanPath);
+    const QString homePath = QDir::cleanPath(QDir::fromNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
+    const QString docsPath = QDir::cleanPath(QDir::fromNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)));
+    if (targetDir.isRoot() ||
+        cleanPath.compare(homePath, Qt::CaseInsensitive) == 0 ||
+        cleanPath.compare(docsPath, Qt::CaseInsensitive) == 0 ||
+        cleanPath.endsWith(QStringLiteral("/StoryBuilderStudioProjects"), Qt::CaseInsensitive)) {
+        emit manifestError(tr("Refusing to delete protected directory: %1").arg(cleanPath));
+        return false;
+    }
+
+    // Verify this directory is a known series or contains a series manifest before recursive removal
+    bool isKnownSeries = false;
+    for (const QString &known : std::as_const(m_cachedAvailableSeries)) {
+        QString knownClean = known.startsWith(QStringLiteral("file://"), Qt::CaseInsensitive)
+        ? QUrl(known).toLocalFile()
+        : known;
+        if (QDir::cleanPath(QDir::fromNativeSeparators(knownClean)).compare(cleanPath, Qt::CaseInsensitive) == 0) {
+            isKnownSeries = true;
+            break;
+        }
+    }
+
+    const bool hasManifest = QFile::exists(targetDir.filePath(QStringLiteral("series.json"))) ||
+                             QFile::exists(targetDir.filePath(QStringLiteral("manifest.json"))) ||
+                             QFile::exists(targetDir.filePath(QStringLiteral("series_manifest.json")));
+
+    if (!isKnownSeries && !hasManifest) {
+        emit manifestError(tr("Directory is not a recognized series folder: %1").arg(cleanPath));
+        return false;
+    }
+
+    // If this series is currently active, clear active root first so file handles are released
+    if (!m_rootDir.isEmpty() &&
+        QDir::cleanPath(QDir::fromNativeSeparators(m_rootDir)).compare(cleanPath, Qt::CaseInsensitive) == 0) {
+        m_rootDir.clear();
+        emit rootDirectoryChanged();
+    }
+
+    if (!targetDir.removeRecursively()) {
+        emit manifestError(tr("Failed to completely delete series directory (check open files): %1").arg(cleanPath));
+        return false;
+    }
+
+    qInfo() << "[SeriesContainer] Deleted series directory from disk:" << cleanPath;
+    refreshAvailableSeries();
+    return true;
+}

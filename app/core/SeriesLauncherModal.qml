@@ -31,6 +31,17 @@ Dialog {
 
     property var availableSeriesList: (typeof seriesContainer !== "undefined" && seriesContainer.availableSeries)
                                           ? seriesContainer.availableSeries : []
+    property string pendingDeleteSeriesPath: ""
+    property string pendingDeleteSeriesName: ""
+
+    function normalizeLocalPath(rawPath) {
+        if (!rawPath) return ""
+        let clean = String(rawPath).replace(/^file:\/\//i, "")
+        if (Qt.platform.os === "windows" && clean.startsWith("/")) {
+            clean = clean.substring(1)
+        }
+        return clean
+    }
 
     background: Rectangle {
         color: "#08121A" // Dark Well
@@ -119,6 +130,12 @@ Dialog {
                     border.color: itemMouseArea.containsMouse ? "#00F0FF" : "transparent"
                     border.width: 1
 
+                    readonly property string seriesDisplayName: {
+                        let normalized = String(modelData).replace(/\\/g, "/").replace(/\/+$/, "")
+                        let parts = normalized.split("/")
+                        return parts[parts.length - 1] || modelData
+                    }
+
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: 8
@@ -129,10 +146,7 @@ Dialog {
                             spacing: 2
 
                             Text {
-                                text: {
-                                    let parts = modelData.split("/")
-                                    return parts[parts.length - 1]
-                                }
+                                text: seriesRowDelegate.seriesDisplayName
                                 color: "#FFFFFF"
                                 style: Text.Outline
                                 styleColor: "#000000"
@@ -171,10 +185,7 @@ Dialog {
                                 font.bold: true
                             }
                             onClicked: {
-                                let clean = modelData.replace(/^file:\/\//i, "")
-                                if (Qt.platform.os === "windows" && clean.startsWith("/")) {
-                                    clean = clean.substring(1)
-                                }
+                                let clean = launcherDialog.normalizeLocalPath(modelData)
                                 if (typeof seriesContainer !== "undefined") {
                                     if (seriesContainer.loadFromDirectory(clean)) {
                                         launcherDialog.close()
@@ -204,12 +215,12 @@ Dialog {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             onClicked: {
-                                if (typeof settingsManager !== "undefined") {
-                                    settingsManager.removeKnownSeriesPath(modelData)
-                                }
+                                launcherDialog.pendingDeleteSeriesPath = launcherDialog.normalizeLocalPath(modelData)
+                                launcherDialog.pendingDeleteSeriesName = seriesRowDelegate.seriesDisplayName
+                                confirmDeleteSeriesDialog.open()
                             }
                             ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Remove from recent list")
+                            ToolTip.text: qsTr("Delete series and all episodes from disk")
                         }
                     }
 
@@ -295,6 +306,147 @@ Dialog {
             }
 
             Item { Layout.fillWidth: true }
+        }
+    }
+
+    // ==========================================
+    // PERMANENT SERIES DELETION CONFIRMATION
+    // ==========================================
+    Dialog {
+        id: confirmDeleteSeriesDialog
+        objectName: "confirmDeleteSeriesDialog"
+        title: qsTr("Confirm Permanent Series Deletion")
+        modal: true
+        focus: true
+        anchors.centerIn: parent
+        width: 460
+
+        background: Rectangle {
+            color: "#08121A"
+            border.color: "#FF4444"
+            border.width: 1
+            radius: 6
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            anchors.margins: 8
+
+            Text {
+                text: qsTr("⚠️ Delete Series \"%1\" Permanently?").arg(launcherDialog.pendingDeleteSeriesName)
+                color: "#FF6666"
+                style: Text.Outline
+                styleColor: "#000000"
+                font.bold: true
+                font.pixelSize: 14
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            Text {
+                text: qsTr("This will permanently delete the entire series directory, including all episodes, scripts, images, audio, and video assets inside:")
+                color: "#CCCCCC"
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: deletePathText.implicitHeight + 12
+                color: "#0B1B26"
+                border.color: "#1A4A68"
+                border.width: 1
+                radius: 4
+
+                Text {
+                    id: deletePathText
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    text: launcherDialog.pendingDeleteSeriesPath
+                    color: "#00F0FF"
+                    font.family: "Courier New, monospace"
+                    font.pixelSize: 11
+                    wrapMode: Text.WrapAnywhere
+                }
+            }
+
+            Text {
+                text: qsTr("This action cannot be undone.")
+                color: "#FFAA00"
+                font.bold: true
+                font.pixelSize: 11
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+                spacing: 10
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    id: cancelDeleteSeriesBtn
+                    objectName: "cancelDeleteSeriesBtn"
+                    text: qsTr("Cancel")
+                    implicitHeight: 28
+                    implicitWidth: 90
+                    onClicked: confirmDeleteSeriesDialog.close()
+                }
+
+                Button {
+                    id: confirmDeleteSeriesBtn
+                    objectName: "confirmDeleteSeriesBtn"
+                    text: qsTr("Delete Series")
+                    implicitHeight: 28
+                    implicitWidth: 120
+                    background: Rectangle {
+                        color: confirmDeleteSeriesBtn.down ? "#771111" : (confirmDeleteSeriesBtn.hovered ? "#CC2222" : "#991A1A")
+                        border.color: "#FF5555"
+                        border.width: 1
+                        radius: 4
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#FFFFFF"
+                        style: Text.Outline
+                        styleColor: "#000000"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        let targetPath = launcherDialog.pendingDeleteSeriesPath
+                        let targetName = launcherDialog.pendingDeleteSeriesName
+                        confirmDeleteSeriesDialog.close()
+
+                        if (typeof projectManager !== "undefined" && projectManager !== null && projectManager.isProjectOpen) {
+                            let activeEp = launcherDialog.normalizeLocalPath(projectManager.currentProjectPath)
+                            if (activeEp.toLowerCase().startsWith(targetPath.toLowerCase())) {
+                                projectManager.closeProject()
+                            }
+                        }
+
+                        let deleted = false
+                        if (typeof seriesContainer !== "undefined" && typeof seriesContainer.deleteSeriesDirectory === "function") {
+                            deleted = seriesContainer.deleteSeriesDirectory(targetPath)
+                        }
+                        if (typeof settingsManager !== "undefined" && typeof settingsManager.removeKnownSeriesPath === "function") {
+                            settingsManager.removeKnownSeriesPath(targetPath)
+                        }
+                        if (typeof seriesContainer !== "undefined" && typeof seriesContainer.refreshAvailableSeries === "function") {
+                            seriesContainer.refreshAvailableSeries()
+                        }
+
+                        if (typeof statusBannerText !== "undefined" && typeof statusBanner !== "undefined") {
+                            statusBannerText.text = deleted
+                                ? qsTr("Deleted series: %1").arg(targetName)
+                                : qsTr("⚠️ Could not delete series folder: %1").arg(targetName)
+                            statusBanner.open()
+                        }
+                    }
+                }
+            }
         }
     }
 
