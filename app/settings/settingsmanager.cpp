@@ -20,6 +20,7 @@
 #include <QProcessEnvironment>
 #include <QProcess>
 #include <QDebug>
+#include <QUrl>
 
 SettingsManager::SettingsManager(QObject *parent)
     : QObject(parent)
@@ -784,7 +785,9 @@ bool SettingsManager::isDriverConfigured(const QString &driverId, const QString 
 
     if (driverId == QStringLiteral("kokoro_tts")) {
         QString kokoroDir = audioRootDir() + QStringLiteral("/speech/Kokoro");
-        return QFile::exists(kokoroDir + QStringLiteral("/model.onnx")) &&
+        QDir dir(kokoroDir);
+        bool hasOnnx = !dir.entryList(QStringList() << QStringLiteral("*.onnx"), QDir::Files).isEmpty();
+        return hasOnnx &&
                QFile::exists(kokoroDir + QStringLiteral("/voices.bin")) &&
                QFile::exists(kokoroDir + QStringLiteral("/tokens.txt"));
     }
