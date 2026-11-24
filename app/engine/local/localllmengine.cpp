@@ -17,9 +17,36 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QThread>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QFuture>
+#include <QHash>
 #include <vector>
 #include "app/settings/settingsmanager.h"
 #include "llama_compat.h"
+
+namespace {
+QMutex s_llmWorkerMutex;
+QHash<const LocalLlmEngine *, QFuture<void>> s_llmWorkers;
+
+void trackLlmWorker(const LocalLlmEngine *engine, const QFuture<void> &future)
+{
+    QMutexLocker locker(&s_llmWorkerMutex);
+    s_llmWorkers.insert(engine, future);
+}
+
+void waitForLlmWorker(const LocalLlmEngine *engine)
+{
+    QFuture<void> future;
+    {
+        QMutexLocker locker(&s_llmWorkerMutex);
+        future = s_llmWorkers.take(engine);
+    }
+    if (future.isValid() && future.isRunning()) {
+        future.waitForFinished();
+    }
+}
+} // namespace
 
 LocalLlmEngine::LocalLlmEngine(QObject *parent)
     : AbstractInferenceDriver(parent)
@@ -58,6 +85,7 @@ void LocalLlmEngine::unloadModel()
     if (m_isBusy) {
         cancelGeneration();
     }
+    waitForLlmWorker(this);
 
     if (m_smpl) {
         llama_sampler_free(m_smpl);
@@ -72,10 +100,11 @@ void LocalLlmEngine::unloadModel()
         m_model = nullptr;
     }
 
+    m_history.clear();
     m_loadedModelName.clear();
     emit modelLoadedChanged(false);
     emit loadedModelNameChanged(m_loadedModelName);
-    qInfo() << "[LocalLlmEngine] Model unloaded.";
+    qInfo() << "[LocalLlmEngine] Model and context unloaded cleanly.";
 }
 
 bool LocalLlmEngine::loadModel(const QVariantMap &config)
@@ -225,8 +254,13 @@ void LocalLlmEngine::generateText(const QString &prompt,
                                   float temperature,
                                   float topP)
 {
-    if (!isModelLoaded()) {
+    if (!isModelLoaded() || !m_model || !m_ctx) {
         emit engineError(tr("Cannot generate: No LLM model loaded."));
+        return;
+    }
+
+    if (m_isBusy) {
+        emit engineError(tr("LLM engine is already busy generating."));
         return;
     }
 
@@ -234,7 +268,7 @@ void LocalLlmEngine::generateText(const QString &prompt,
     m_abortRequested = false;
     emit busyChanged(true);
 
-    (void)QtConcurrent::run([this, prompt, systemPrompt, attachedFiles, maxTokens, temperature, topP]() {
+    QFuture<void> future = QtConcurrent::run([this, prompt, systemPrompt, attachedFiles, maxTokens, temperature, topP]() {
         QString fileContext;
         for (const QString &filePath : attachedFiles) {
             QString cleanPath = QDir::toNativeSeparators(filePath);
@@ -293,13 +327,6 @@ void LocalLlmEngine::generateText(const QString &prompt,
 
         llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
         llama_sampler *smpl = llama_sampler_chain_init(sparams);
-        // llama_sampler_chain_add(smpl, llama_sampler_init_penalties(
-        //                                   n_vocab,
-        //                                   64,
-        //                                   1.15f,
-        //                                   0.10f,
-        //                                   0.10f
-        //                                   ));
         llama_sampler_chain_add(smpl, llama_compat::init_penalties(n_vocab, 64, 1.15f, 0.10f, 0.10f));
         llama_sampler_chain_add(smpl, llama_sampler_init_top_p(topP, 1));
         llama_sampler_chain_add(smpl, llama_sampler_init_temp(temperature));
@@ -311,7 +338,7 @@ void LocalLlmEngine::generateText(const QString &prompt,
         int32_t n_batch = llama_n_batch(m_ctx);
         int32_t evaluated_tokens = 0;
 
-        while (evaluated_tokens < total_tokens) {
+        while (evaluated_tokens < total_tokens && !m_abortRequested) {
             int32_t chunk_size = std::min(n_batch, total_tokens - evaluated_tokens);
             llama_batch chunk_batch = llama_batch_init(chunk_size, 0, 1);
             chunk_batch.n_tokens = chunk_size;
@@ -331,7 +358,7 @@ void LocalLlmEngine::generateText(const QString &prompt,
                     m_isBusy = false;
                     emit busyChanged(false);
                     emit engineError(tr("Prompt chunk evaluation failed. Input size exceeds physical context limit."));
-                });
+                }, Qt::QueuedConnection);
                 return;
             }
 
@@ -387,7 +414,7 @@ void LocalLlmEngine::generateText(const QString &prompt,
                             accumulatedResponse += rest;
                             QMetaObject::invokeMethod(this, [this, rest]() {
                                 emit tokenGenerated(rest);
-                            });
+                            }, Qt::QueuedConnection);
                         }
                     } else {
                         accumulatedThinking += pieceStr;
@@ -398,7 +425,7 @@ void LocalLlmEngine::generateText(const QString &prompt,
 
                     QMetaObject::invokeMethod(this, [this, pieceStr]() {
                         emit tokenGenerated(pieceStr);
-                    });
+                    }, Qt::QueuedConnection);
                 }
             }
 
@@ -452,8 +479,10 @@ void LocalLlmEngine::generateText(const QString &prompt,
             payload[QStringLiteral("category")] = QStringLiteral("script");
 
             emit generationFinished(payload);
-        });
+        }, Qt::QueuedConnection);
     });
+
+    trackLlmWorker(this, future);
 }
 
 int LocalLlmEngine::estimateTokenCount(const QString &text) const
