@@ -246,7 +246,8 @@ qt_add_qml_module(StoryBuilderStudioLib
     RESOURCES TODO.md
     RESOURCES README.md
     RESOURCES LICENSE
-    RESOURCES scripts/run.bat scripts/run.sh
+    RESOURCES scripts/storybuilderstudio.bat
+    RESOURCES scripts/storybuilderstudio.sh
     RESOURCES resources.qrc
     RESOURCES app.rc
     RESOURCES scripts/build.sh
@@ -262,7 +263,6 @@ qt_add_qml_module(StoryBuilderStudioLib
     RESOURCES docs/index.html
     RESOURCES scripts/install.sh
     RESOURCES scripts/uninstall.sh
-    RESOURCES
     RESOURCES scripts/uninstall.ps1
     RESOURCES scripts/install.ps1
 )
@@ -409,7 +409,7 @@ if(APPLE)
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.storybuilderstudio.app"
     )
 elseif(UNIX)
-    install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/run.sh"
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/storybuilderstudio.sh"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/StoryBuilderStudio.desktop"
@@ -437,7 +437,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/docs/"
 # Windows Deployment Components: NonQtLibs & QtRuntime
 # ==============================================================================
 if(WIN32)
-    install(FILES "${CMAKE_SOURCE_DIR}/scripts/run.bat"
+    install(FILES "${CMAKE_SOURCE_DIR}/scripts/storybuilderstudio.bat"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
     # --------------------------------------------------------------------------

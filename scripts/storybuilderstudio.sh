@@ -1,59 +1,62 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_BIN="${SCRIPT_DIR}/appStoryBuilderStudio"
 
 # ==========================================
 # CUSTOM CONFIGURATION
 # ==========================================
-# Edit these paths if your dependencies are not in standard locations
-CUSTOM_QT_PATH=""
-LOCAL_DLL_PATH=""
+# Set CUSTOM_QT_PATH or LOCAL_DLL_PATH in your environment,
+# or override them below if dependencies are in non-standard locations.
+CUSTOM_QT_PATH="${CUSTOM_QT_PATH:-}"
+LOCAL_DLL_PATH="${LOCAL_DLL_PATH:-}"
 
-# Add custom local DLLs to LD_LIBRARY_PATH right away if defined
-if [ -n "$LOCAL_DLL_PATH" ] && [ -d "$LOCAL_DLL_PATH" ]; then
-    echo "[INFO] Injecting local DLL path into environment: $LOCAL_DLL_PATH"
-    export LD_LIBRARY_PATH="$LOCAL_DLL_PATH:$LD_LIBRARY_PATH"
+# Add custom local shared libraries to LD_LIBRARY_PATH if defined
+if [ -n "$LOCAL_DLL_PATH" ]; then
+    if [ -d "$LOCAL_DLL_PATH" ]; then
+        echo "[INFO] Injecting local library path into environment: $LOCAL_DLL_PATH"
+        export LD_LIBRARY_PATH="$LOCAL_DLL_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    else
+        echo "[WARN] LOCAL_DLL_PATH does not exist: $LOCAL_DLL_PATH"
+    fi
 fi
 
 # Check if custom Qt path is set and valid
 if [ -n "$CUSTOM_QT_PATH" ] && [ -d "$CUSTOM_QT_PATH" ]; then
     echo "[INFO] Using custom Qt path: $CUSTOM_QT_PATH"
-    export LD_LIBRARY_PATH="$CUSTOM_QT_PATH:$LD_LIBRARY_PATH"
-    ./appStoryBuilderStudio
-    exit 0
+    export LD_LIBRARY_PATH="$CUSTOM_QT_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    exec "$APP_BIN" "$@"
 fi
 
-echo "[INFO] Scanning for local Qt 6.11+ installations..."
+echo "[INFO] Scanning for local Qt 6.9+ installations..."
 
-# Search order: Common /opt/Qt paths, then /usr/local
 SEARCH_PATHS=(
     "/opt/Qt/6."*"/gcc_64/lib"
     "/usr/local/Qt/6."*"/gcc_64/lib"
 )
 
 for pattern in "${SEARCH_PATHS[@]}"; do
-    # Expand wildcards safely
     for dir in $pattern; do
         if [ -d "$dir" ] && [ -f "$dir/libQt6Core.so" ]; then
-            # Extract minor version number from the path (e.g., 6.11.0 -> 11)
             if [[ "$dir" =~ 6\.([0-9]+) ]]; then
                 minor_version="${BASH_REMATCH[1]}"
-                if [ "$minor_version" -ge 11 ]; then
-                    echo "[SUCCESS] Found Qt 6.11+ libraries at: $dir"
-                    export LD_LIBRARY_PATH="$dir:$LD_LIBRARY_PATH"
-                    ./appStoryBuilderStudio
-                    exit 0
+                if [ "$minor_version" -ge 9 ]; then
+                    echo "[SUCCESS] Found Qt 6.9+ libraries at: $dir"
+                    export LD_LIBRARY_PATH="$dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+                    exec "$APP_BIN" "$@"
                 fi
             fi
         fi
     done
 done
 
-# Last ditch attempt: check if system can find Qt globally
-if ldconfig -p | grep -qE 'libQt6Core\.so'; then
+# Fall back to global system Qt libraries (standard on Fedora / Debian packages)
+if ldconfig -p 2>/dev/null | grep -qE 'libQt6Core\.so'; then
     echo "[INFO] Qt detected in global system cache. Attempting launch..."
-    ./appStoryBuilderStudio
-    exit 0
+    exec "$APP_BIN" "$@"
 fi
 
-echo "[ERROR] Could not automatically locate Qt 6.11+ libraries."
-echo "[ERROR] Please open 'run.sh' in a text editor and set your CUSTOM_QT_PATH."
+echo "[ERROR] Could not automatically locate Qt 6.9+ libraries."
+echo "[ERROR] Set CUSTOM_QT_PATH in your environment or edit 'storybuilderstudio.sh'."
 exit 1
