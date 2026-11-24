@@ -55,7 +55,11 @@ endif()
 
 # Add icon
 if(WIN32)
+    enable_language(RC)
     set(APP_ICON_RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/app.rc")
+    set_source_files_properties("${APP_ICON_RESOURCE}" PROPERTIES
+        OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/app.ico"
+    )
 else()
     set(APP_ICON_RESOURCE "")
 endif()
@@ -256,6 +260,11 @@ qt_add_qml_module(StoryBuilderStudioLib
     RESOURCES app.icns
     RESOURCES app.png
     RESOURCES docs/index.html
+    RESOURCES scripts/install.sh
+    RESOURCES scripts/uninstall.sh
+    RESOURCES
+    RESOURCES scripts/uninstall.ps1
+    RESOURCES scripts/install.ps1
 )
 
 # ============================================================================
@@ -302,7 +311,6 @@ endif()
 
 if(SHERPA_ONNX_BIN)
     add_inference_plugin(KokoroTtsEngine "app/engine/local/kokorottsengine.cpp" "app/engine/local/kokorottsengine.h" "${SHERPA_ONNX_BIN}")
-    target_sources(KokoroTtsEngine PRIVATE )
 else()
     message(STATUS "Skipping KokoroTtsEngine plugin (sherpa-onnx library not found)")
 endif()
@@ -384,9 +392,11 @@ install(TARGETS appStoryBuilderStudio
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# set up mac icon.
 if(APPLE)
-    set(MACOS_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.icns")
+    set(MACOS_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/app.icns")
+    if(NOT EXISTS "${MACOS_APP_ICON}")
+        set(MACOS_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.icns")
+    endif()
     set_source_files_properties(${MACOS_APP_ICON} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources"
     )
@@ -398,46 +408,20 @@ if(APPLE)
         MACOSX_BUNDLE_BUNDLE_NAME "Story Builder Studio"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.storybuilderstudio.app"
     )
-endif()
-
-if(UNIX AND NOT APPLE)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/StoryBuilderStudio.desktop"
-        DESTINATION share/applications
-    )
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.png"
-        DESTINATION share/icons/hicolor/256x256/apps
-        RENAME storybuilderstudio.png
-    )
-endif()
-
-if(UNIX)
+elseif(UNIX)
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/run.sh"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
-    #install app icon and register in Info.plist
-    if(APPLE)
-        set(MACOS_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.icns")
-        set_source_files_properties(${MACOS_APP_ICON} PROPERTIES
-            MACOSX_PACKAGE_LOCATION "Resources"
-        )
-        target_sources(appStoryBuilderStudio PRIVATE ${MACOS_APP_ICON})
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/StoryBuilderStudio.desktop"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
 
-        set_target_properties(appStoryBuilderStudio PROPERTIES
-            MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_ICON_FILE "app.icns"
-            MACOSX_BUNDLE_BUNDLE_NAME "Story Builder Studio"
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.storybuilderstudio.app"
-        )
-    else()
-        #setup *nix desktop and icon file.
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/StoryBuilderStudio.desktop"
-            DESTINATION share/applications
-        )
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.png"
-            DESTINATION share/icons/hicolor/256x256/apps
-            RENAME storybuilderstudio.png
-        )
+    set(LINUX_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/app.png")
+    if(NOT EXISTS "${LINUX_APP_ICON}")
+        set(LINUX_APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.png")
     endif()
+    install(FILES "${LINUX_APP_ICON}"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps"
+            RENAME storybuilderstudio.png)
 endif()
 
 install(FILES "${CMAKE_SOURCE_DIR}/README.md"
@@ -446,30 +430,21 @@ install(FILES "${CMAKE_SOURCE_DIR}/README.md"
 install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
-    install(FILES "${CMAKE_SOURCE_DIR}/docs/index.html"
-            DESTINATION "${CMAKE_INSTALL_BINDIR}/docs/")
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/docs/"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}/docs")
 
 # ==============================================================================
 # Windows Deployment Components: NonQtLibs & QtRuntime
-# (EXCLUDE_FROM_ALL prevents them from running on default "install")
 # ==============================================================================
 if(WIN32)
-    # --------------------------------------------------------------------------
-    # Installs run.bat
-    # --------------------------------------------------------------------------
     install(FILES "${CMAKE_SOURCE_DIR}/scripts/run.bat"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
-     install(FILES "${APP_ICON_RESOURCE}"
-            DESTINATION "${CMAKE_INSTALL_BINDIR}")
-
-    install(FILES "${CMAKE_SOURCE_DIR}/app.rc"
-            DESTINATION "${CMAKE_INSTALL_BINDIR}")
     # --------------------------------------------------------------------------
     # Component: NonQtLibs (Compiler Runtimes + 3rd-Party Engine DLLs)
     # --------------------------------------------------------------------------
     get_filename_component(TOOLCHAIN_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
-    find_file(LLVM_OPENMP_DLL NAMES libomp.dll   PATHS "${TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH)
+    find_file(LLVM_OPENMP_DLL NAMES libomp.dll    PATHS "${TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH)
     find_file(LLVM_UNWIND_DLL NAMES libunwind.dll PATHS "${TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH)
     find_file(LLVM_CXX_DLL    NAMES libc++.dll    PATHS "${TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH)
 
@@ -490,10 +465,10 @@ endif()
 # ============================================================================
 # 6. Test Suite Infrastructure
 # ============================================================================
-option(TEST "Build and enable automated test suite" ON)
+option(BUILD_TESTS "Build and enable automated test suite" ON)
 
 
-if(TEST)
+if(BUILD_TESTS)
     enable_testing()
     include(CTest)
 

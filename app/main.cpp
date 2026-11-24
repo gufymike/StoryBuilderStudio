@@ -51,7 +51,12 @@ int main(int argc, char *argv[])
     AppLogger::initLogging();
     Q_INIT_RESOURCE(default_prompts);
     QGuiApplication app(argc, argv);
-    app.setWindowIcon(QIcon(QStringLiteral(":/app.ico")));
+    app.setDesktopFileName(QStringLiteral("StoryBuilderStudio"));
+    QIcon appIcon(QStringLiteral(":/app.png"));
+    if (appIcon.isNull()) {
+        appIcon = QIcon(QStringLiteral(":/app.ico"));
+    }
+    app.setWindowIcon(appIcon);
 
     QQmlApplicationEngine engine;
 
