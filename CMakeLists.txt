@@ -153,6 +153,12 @@ qt_add_resources(StoryBuilderStudioLib "default_prompts"
         prompts/video/tracking_shot.prompt
         prompts/video/wide_pan.prompt
 )
+qt_add_resources(StoryBuilderStudioLib "resources"
+    PREFIX "/"
+    FILES
+        app.png
+        app.ico
+)
 
 # 2. MUST BE BEFORE qt_add_qml_module so the QML type registrar generator inherits these paths!
 target_include_directories(StoryBuilderStudioLib PUBLIC
@@ -437,6 +443,11 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/docs/"
 # Windows Deployment Components: NonQtLibs & QtRuntime
 # ==============================================================================
 if(WIN32)
+    install(FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/app.ico"
+            "${CMAKE_CURRENT_SOURCE_DIR}/app.png"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
     install(FILES "${CMAKE_SOURCE_DIR}/scripts/storybuilderstudio.bat"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 

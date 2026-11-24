@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("5150wtmw"));
     AppLogger::initLogging();
     Q_INIT_RESOURCE(default_prompts);
+    Q_INIT_RESOURCE(resources);
     QGuiApplication app(argc, argv);
     app.setDesktopFileName(QStringLiteral("StoryBuilderStudio"));
     QIcon appIcon(QStringLiteral(":/app.png"));
