@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: projectdirectorymodel.h
-** QML Model for inspecting and loading categorized prompt templates.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <QObject>

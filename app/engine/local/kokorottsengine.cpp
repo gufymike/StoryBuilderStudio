@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: kokorottsengine.cpp
-** Inference driver wrapping Sherpa-ONNX Kokoro offline TTS.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "kokorottsengine.h"
 #include <QStandardPaths>
 #include <QDir>

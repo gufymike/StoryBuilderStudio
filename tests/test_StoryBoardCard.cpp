@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: test_StoryBoardCard.cpp
-** Unit test suite for StoryBoardCard QML component under QTest.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include <QtTest>
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>

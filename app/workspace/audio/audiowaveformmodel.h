@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: audiowaveformmodel.h
-** Decodes audio files and generates normalized PCM amplitude arrays for QML Canvas.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <QObject>

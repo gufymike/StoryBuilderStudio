@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: abstractassetdirectorymodel.cpp
-** Abstract base QAbstractListModel managing project workspace asset directories.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "abstractassetdirectorymodel.h"
 #include <QDir>
 #include <QFileInfo>

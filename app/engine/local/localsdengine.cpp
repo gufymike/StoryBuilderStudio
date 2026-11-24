@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: localsdengine.cpp
-** Inference driver integrating stable-diffusion.cpp for image and video synthesis.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "localsdengine.h"
 #include <QtConcurrent/QtConcurrent>
 #include <QStandardPaths>

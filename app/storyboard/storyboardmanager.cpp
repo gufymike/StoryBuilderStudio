@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: storyboardmanager.cpp
-** Orchestrates shot metadata, ordering, and multimodal asset bindings.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "storyboardmanager.h"
 #include <QFile>
 #include <QDir>

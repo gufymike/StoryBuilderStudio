@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: test_OpenProjectDialog.cpp
-** Unit test suite for OpenProjectDialog QML component under QTest.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include <QtTest>
 #include <QCoreApplication>
 #include <QQmlEngine>

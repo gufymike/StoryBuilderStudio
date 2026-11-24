@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
+
 param(
     [string]$BuildDir = "",
     [string]$Prefix = "$env:LOCALAPPDATA\Programs\StoryBuilderStudio"

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/<YOUR_USER>/StoryBuilderStudio.git}"

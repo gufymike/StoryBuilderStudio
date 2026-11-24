@@ -1,13 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: llama_compat.h
-** holds shims for fixing calls between llama.cpp versions
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
 
 #pragma once
 #include <llama.h>

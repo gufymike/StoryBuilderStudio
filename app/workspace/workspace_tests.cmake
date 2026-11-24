@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
 
 # --- test_ScriptsDirectoryModel ---
 add_executable(test_ScriptsDirectoryModel

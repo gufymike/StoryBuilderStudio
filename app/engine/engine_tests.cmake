@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
 
 add_executable(test_EngineRegistry
     tests/test_EngineRegistry.cpp

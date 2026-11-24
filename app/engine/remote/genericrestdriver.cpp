@@ -1,14 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: genericrestdriver.cpp
-** Remote inference driver supporting OpenAI, Ollama, and Google Gemini REST endpoints
-** across script, image, audio, and video modalities.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "genericrestdriver.h"
 #include <QJsonDocument>
 #include <QJsonObject>

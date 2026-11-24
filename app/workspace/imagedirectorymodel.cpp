@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: imagedirectorymodel.cpp
-** Provides directory inspection, dimensions, and metadata for project image assets.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "imagedirectorymodel.h"
 #include <QImageReader>
 #include <QSize>

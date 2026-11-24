@@ -1,13 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: localaudioengine.cpp
-** Inference driver wrapping audio.cpp for local SFX and speech synthesis.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 #include "localaudioengine.h"
 #include <QDir>
 #include <QFileInfo>

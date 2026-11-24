@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
+
 enable_testing()
 # MainView Test
 add_executable(test_MainView

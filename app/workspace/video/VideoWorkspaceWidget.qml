@@ -1,14 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: VideoWorkspaceWidget.qml
-** Video workspace viewer with integrated playback viewport, scrubbing,
-** asset model integration, and external tool dispatching.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts

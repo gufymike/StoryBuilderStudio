@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
+
 # --- test_PromptHistoryStore ---
 add_executable(test_PromptHistoryStore
     tests/test_PromptHistoryStore.cpp

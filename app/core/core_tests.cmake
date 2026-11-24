@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Ramirez
+# SPDX-License-Identifier: MIT
 
 add_executable(test_AppLogger
     tests/test_AppLogger.cpp

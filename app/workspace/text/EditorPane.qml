@@ -1,14 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2026 Mike Ramirez
-**
-** SPDX-License-Identifier: GPL-3.0-or-later
-**
-** File: EditorPane.qml
-** Multi-mode text, markdown, and screenplay beat editor with integrated
-** find/replace, text statistics, and prompt dispatch pipelines.
-**
-****************************************************************************/
+// Copyright (c) 2026 Mike Ramirez
+// SPDX-License-Identifier: MIT
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
