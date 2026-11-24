@@ -253,6 +253,7 @@ add_custom_target(StoryBuilderStudioProjectFiles SOURCES
     TODO.md
     README.md
     LICENSE
+    THIRD-PARTY-NOTICES.txt
     app.rc
     app.ico
     app.icns
@@ -422,6 +423,7 @@ elseif(UNIX)
     install(FILES
         "${CMAKE_SOURCE_DIR}/README.md"
         "${CMAKE_SOURCE_DIR}/LICENSE"
+        "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
         "${CMAKE_SOURCE_DIR}/docs/index.html"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}"
     )
@@ -431,6 +433,7 @@ elseif(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/app.png"
         "${CMAKE_SOURCE_DIR}/README.md"
         "${CMAKE_SOURCE_DIR}/LICENSE"
+        "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
         "${CMAKE_SOURCE_DIR}/scripts/storybuilderstudio.bat"
         "${CMAKE_SOURCE_DIR}/scripts/uninstall.ps1"
         DESTINATION "${CMAKE_INSTALL_BINDIR}"

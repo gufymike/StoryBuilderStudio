@@ -39,13 +39,13 @@ Use the included automation scripts in `scripts/` to clone/update, configure, bu
   * #### REST-only (default)
   * ```.\scripts\build.ps1 -QtPrefix "C:\Qt\6.11.0\llvm-mingw_64"```
   
-  * #### Everthing
+  * #### Everything
   * ```.\scripts\build.ps1 -All -QtPrefix "C:\Qt\6.11.0\llvm-mingw_64"```
   
   * #### Only llama.cpp and audio.cpp
   * ```.\scripts\build.ps1 -With "llama.cpp,audio.cpp" -QtPrefix "C:\Qt\6.11.0\llvm-mingw_64"```
   
-  * #### Everthing except llama.cpp 
+  * #### Everything except llama.cpp 
   * ```.\scripts\build.ps1 -Without "llama.cpp" -QtPrefix "C:\Qt\6.11.0\llvm-mingw_64"```
 
 > [!TIP]
@@ -91,7 +91,7 @@ Story Builder Studio supports two build modes out of the box:
 
 Example building `llama.cpp` from source (CPU-only; omit `-DGGML_HIP=OFF -DGGML_CUDA=OFF` or enable `-DGGML_CUDA=ON` / `-DGGML_VULKAN=ON` for GPU acceleration):
 ```bash
-git clone --depth 1 [https://github.com/ggml-org/llama.cpp.git](https://github.com/ggml-org/llama.cpp.git)
+git clone --depth 1 https://github.com/ggml-org/llama.cpp.git
 cmake -S llama.cpp -B llama.cpp/build -G Ninja \
   -DBUILD_SHARED_LIBS=ON -DGGML_HIP=OFF -DGGML_CUDA=OFF
 cmake --build llama.cpp/build --target llama
@@ -193,33 +193,28 @@ For standalone deployments, place pre-built dynamic shared libraries directly in
 
 ---
 
-## 6. Launching Standalone Binaries (Unbundled Qt)
+## 6. Launching & Installing Standalone Binaries
 
-If you are running an unbundled/developer build (without embedded Qt libraries), point your OS dynamic linker to your local Qt runtime:
+### Installing from a Source Build
+* **Windows (PowerShell):** `.\scripts\install.ps1` (removes via `.\scripts\uninstall.ps1` or `<Prefix>\bin\uninstall.ps1`)
+* **Linux / macOS:** `./scripts/install.sh` (removes via `./scripts/uninstall.sh`)
 
-### 🪟 Windows
-* **Option A — Local Launcher Script (`run.bat`, Recommended):**
-  ```cmd
-  @echo off
-  set PATH=C:\Qt\6.11.0\llvm-mingw_64\bin;%PATH%
-  start appStoryBuilderStudio.exe
-  ```
+### Running Unbundled Developer Builds
+If you are running directly from a build directory without embedded Qt libraries:
+
+#### 🪟 Windows
+* **Option A — Launcher Script (`scripts\storybuilderstudio.bat`, Recommended):**
+  Set `QT_BIN_DIR` (or `PATH`) and optional `LOCAL_DLL_PATH` in your environment, then run `storybuilderstudio.bat`.
 * **Option B — Persistent User Environment Variable:**
   1. Press `Win + R`, type `sysdm.cpl`, and press **Enter**.
   2. Navigate to **Advanced → Environment Variables**.
   3. Under **User variables**, edit `Path` and append `C:\Qt\6.11.0\llvm-mingw_64\bin`.
-  4. Restart your terminal or shell.
 
-### 🐧 Linux
-* **Direct Launch:**
-  ```bash
-  LD_LIBRARY_PATH=/opt/Qt/6.11.0/gcc_64/lib ./appStoryBuilderStudio
-  ```
-* **Wrapper Script (`run.sh`):**
-  ```bash
-  #!/usr/bin/env bash
-  export LD_LIBRARY_PATH=/opt/Qt/6.11.0/gcc_64/lib:$LD_LIBRARY_PATH
-  ./appStoryBuilderStudio
+#### 🐧 Linux
+```bash
+./scripts/storybuilderstudio.sh
+# Or directly (not required if built against system Qt 6):
+LD_LIBRARY_PATH=/opt/Qt/6.11.0/gcc_64/lib ./appStoryBuilderStudio
   ```
   Make executable with `chmod +x run.sh`. *(Not required if built against system Qt 6.)*
 
@@ -314,3 +309,13 @@ Place the language model and tokenizer inside `text/`:
 1. **Verify Plugins & Manifests:** Open **Help → About** to confirm loaded vs. missing local plugins, then check the **Model Settings / Manifest** tab to ensure required `.gguf`, `.onnx`, and `.safetensors` weights are highlighted green.
 2. **Audio Waveform Initialization:** In the Audio workspace, select a track or synthesize a sentence to confirm `QAudioDecoder` loads and renders waveform peaks without runtime errors.
 3. **Audit Trail Verification:** Confirm `prompt_history.json` and `think_history.json` are created in active project folders to log prompt dispatches and reasoning streams.
+
+## 10. License & Third-Party Notices
+
+Story Builder Studio is licensed under the **MIT License** — see [LICENSE](LICENSE) for full terms.
+
+Optional and runtime dependencies retain their respective open-source licenses:
+* **Qt 6** — GNU LGPL v3 / GPL v2 / GPL v3 (dynamically linked)
+* **llama.cpp**, **stable-diffusion.cpp**, **ONNX Runtime** — MIT License
+* **sherpa-onnx** — Apache License 2.0
+* **LLVM MinGW Runtime** (`libc++`, `libunwind`, `libomp`) — Apache License 2.0 with LLVM Exception
