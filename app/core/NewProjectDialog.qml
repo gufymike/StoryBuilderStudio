@@ -91,7 +91,7 @@ Dialog {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
-                    Text { text: qsTr("Primary Author (Supports 'Name <email>') *"); color: "#CCCCCC"; font.pixelSize: 12 }
+                    Text { text: qsTr("Primary Author (Supports 'Name <email>')"); color: "#CCCCCC"; font.pixelSize: 12 }
                     TextField {
                         id: authorField
                         objectName: "authorField"

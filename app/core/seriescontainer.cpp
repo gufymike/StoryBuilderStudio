@@ -466,10 +466,10 @@ bool SeriesContainer::deleteSeriesDirectory(const QString &seriesPath)
         }
     }
 
-    const bool hasManifest = QFile::exists(targetDir.filePath(QStringLiteral("series.json"))) ||
+    const bool hasManifest = QFile::exists(targetDir.filePath(QStringLiteral("season_manifest.json"))) ||
+                             QFile::exists(targetDir.filePath(QStringLiteral("series.json"))) ||
                              QFile::exists(targetDir.filePath(QStringLiteral("manifest.json"))) ||
                              QFile::exists(targetDir.filePath(QStringLiteral("series_manifest.json")));
-
     if (!isKnownSeries && !hasManifest) {
         emit manifestError(tr("Directory is not a recognized series folder: %1").arg(cleanPath));
         return false;
