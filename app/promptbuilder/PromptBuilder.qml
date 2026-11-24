@@ -422,6 +422,7 @@ Item {
                 // Response Output Well
                 Rectangle {
                     id: responseWellRect
+                    objectName: "responseWellRect"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     color: "#0B1B26"
@@ -463,6 +464,7 @@ Item {
                     // Viewport-pinned busy overlay (sibling of ScrollView, never scrolls or clips at 0x0)
                     Rectangle {
                         id: responseBusyOverlay
+                        objectName: "responseBusyOverlay"
                         anchors.fill: parent
                         z: 10
                         visible: promptBuilderRoot.isGenerating
@@ -475,6 +477,7 @@ Item {
 
                             BusyIndicator {
                                 id: responseBusyIndicator
+                                objectName: "responseBusyIndicator"
                                 running: responseBusyOverlay.visible
                                 Layout.alignment: Qt.AlignHCenter
                             }
@@ -841,7 +844,17 @@ Item {
                             }
                         }
                     }
-
+                    GenerationProgressDialog {
+                         id: generationProgressDialog
+                         objectName: "generationProgressDialog"
+                         onCancelRequested: {
+                             if (promptBuilderRoot.activeDriver && typeof promptBuilderRoot.activeDriver.cancelGeneration === "function") {
+                                 promptBuilderRoot.activeDriver.cancelGeneration()
+                             }
+                             let driverName = promptBuilderRoot.activeDriver ? promptBuilderRoot.activeDriver.driverId : "engine"
+                             responseDisplayArea.appendIncomingText(">>> Cancellation requested for " + driverName + "...")
+                         }
+                    }
                     InferenceSettingsPanel {
                         id: inferenceSettingsPanel
                         objectName: "inferenceSettingsPanel"
@@ -1015,6 +1028,12 @@ Item {
                             inferenceSettingsPanel.getOptionsPayload()
                         )
 
+                        generationProgressDialog.startTracking(
+                            promptBuilderRoot.targetAssetType,
+                            activeDriver.driverId,
+                            qsTr("Running %1...").arg(promptBuilderRoot.engineDisplayName)
+                        )
+
                         promptTextArea.text = ""
                     }
                 }
@@ -1124,12 +1143,25 @@ Item {
         ignoreUnknownSignals: true
 
         function onTokenGenerated(token) {
+            generationProgressDialog.updateProgress(qsTr("Streaming response tokens..."), -1.0)
             responseDisplayArea.insert(responseDisplayArea.length, token)
+        }
+
+        function onProgressUpdated(currentStep, totalSteps, stepLatency) {
+            if (totalSteps > 0) {
+                let ratio = Math.max(0.0, Math.min(1.0, currentStep / totalSteps))
+                let status = stepLatency > 0
+                    ? qsTr("Step %1 of %2 (%3s/it)").arg(currentStep).arg(totalSteps).arg(stepLatency.toFixed(1))
+                    : qsTr("Step %1 of %2").arg(currentStep).arg(totalSteps)
+                generationProgressDialog.updateProgress(status, ratio)
+            } else {
+                generationProgressDialog.updateProgress(qsTr("Processing step %1...").arg(currentStep), -1.0)
+            }
         }
 
         function onGenerationFinished(payload) {
             promptBuilderRoot.isGenerating = false
-
+            generationProgressDialog.finishTracking()
             let category = payload.category || promptBuilderRoot.targetAssetType
             let summaryText = ""
             let thinkText = ""
@@ -1189,6 +1221,7 @@ Item {
 
         function onEngineError(errorMessage) {
             promptBuilderRoot.isGenerating = false
+            generationProgressDialog.finishTracking()
             let driverName = promptBuilderRoot.activeDriver ? promptBuilderRoot.activeDriver.driverId : "Engine"
             responseDisplayArea.appendIncomingText("[ERROR " + driverName + "]: " + errorMessage)
             promptBuilderRoot.engineErrorOccurred(driverName, errorMessage)

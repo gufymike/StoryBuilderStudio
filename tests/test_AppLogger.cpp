@@ -194,6 +194,14 @@ void Test_AppLogger::testMemoryAndResourceCleanupOnClose()
     QVERIFY2(QFile::remove(logPath), "Failed to delete log file. closeLogging() did not release the underlying file lock.");
 }
 
-QTEST_MAIN(Test_AppLogger)
+
+// withou *.debug=true qDebug() test will fail.
+int main(int argc, char *argv[])
+{
+    qputenv("QT_LOGGING_RULES", "*.debug=true");
+    QCoreApplication app(argc, argv);
+    Test_AppLogger tc;
+    return QTest::qExec(&tc, argc, argv);
+}
 #include "test_AppLogger.moc"
 

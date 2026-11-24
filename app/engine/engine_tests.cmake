@@ -426,3 +426,24 @@ target_link_libraries(test_InferenceSettingsPanel PRIVATE
 )
 
 add_test(NAME test_InferenceSettingsPanel COMMAND test_InferenceSettingsPanel)
+
+qt_add_executable(test_GenerationProgressDialog
+    tests/test_GenerationProgressDialog.cpp
+)
+
+target_link_libraries(test_GenerationProgressDialog PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::QuickControls2
+    Qt6::Test
+    StoryBuilderStudioLib
+)
+
+target_compile_definitions(test_GenerationProgressDialog PRIVATE
+    CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    CMAKE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+)
+
+add_test(NAME test_GenerationProgressDialog COMMAND test_GenerationProgressDialog)

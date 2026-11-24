@@ -221,6 +221,7 @@ qt_add_qml_module(StoryBuilderStudioLib
     QML_FILES app/storyboard/StoryBoardCard.qml
     QML_FILES app/storyboard/StoryBoardWorkspaceView.qml
     QML_FILES app/workspace/WorkspaceView.qml
+    QML_FILES app/engine/GenerationProgressDialog.qml
 
     SOURCES app/engine/abstractinferencedriver.h
     SOURCES app/core/applogger.h app/core/applogger.cpp
@@ -243,6 +244,7 @@ qt_add_qml_module(StoryBuilderStudioLib
     SOURCES app/workspace/audio/audiowaveformmodel.h app/workspace/audio/audiowaveformmodel.cpp
     SOURCES app/workspace/scriptsdirectorymodel.h
     SOURCES app/core/ui_constants.h
+
     RESOURCES app/core/core_tests.cmake
     RESOURCES app/engine/engine_tests.cmake
     RESOURCES app/promptbuilder/promptbuilder_tests.cmake
@@ -271,6 +273,8 @@ qt_add_qml_module(StoryBuilderStudioLib
     RESOURCES scripts/uninstall.sh
     RESOURCES scripts/uninstall.ps1
     RESOURCES scripts/install.ps1
+
+
 )
 
 # ============================================================================
@@ -510,10 +514,13 @@ if(BUILD_TESTS)
             "PATH=${FULL_TEST_PATH}"
             "QT_QPA_PLATFORM=offscreen"
             "QT_QUICK_CONTROLS_STYLE=Basic"
-            "QT_LOGGING_RULES=*.debug=true"
         )
     else()
-        set(CTEST_RUN_ENV "QT_QPA_PLATFORM=offscreen")
+        set(CTEST_RUN_ENV
+            "QT_QPA_PLATFORM=offscreen"
+            "QT_QUICK_CONTROLS_STYLE=Basic"
+            "QT_LOGGING_RULES=*.debug=true"
+        )
     endif()
 
 
