@@ -42,6 +42,36 @@ ApplicationWindow {
     property alias statusPopup: statusBanner
     property alias statusBannerMessage: statusBannerText.text
 
+    function resolveEpisodeScriptsFolderUrl() {
+        if (typeof projectManager !== "undefined" && projectManager !== null && projectManager.isProjectOpen) {
+            let base = projectManager.currentProjectPath
+            if (base && base.length > 0) {
+                let fullPath = (base + "/scripts").replace(/\\/g, "/")
+                return (Qt.platform.os === "windows" ? "file:///" : "file://") + fullPath
+            }
+        }
+        return StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+    }
+
+    function openScriptFile(nativePath) {
+        if (!nativePath || nativePath.length === 0) return false
+        if (storyDocument.loadLocalFile(nativePath)) {
+            rootWindow.currentFilePath = nativePath
+            rootWindow.isDocumentLoaded = true
+            if (workspaceView && workspaceView.mainEditorPane) {
+                workspaceView.mainEditorPane.isDocumentLoaded = true
+                workspaceView.mainEditorPane.paneTitle = nativePath
+                workspaceView.mainEditorPane.textContent = storyDocument.rawText
+            }
+            rootWindow.title = "Story Builder Studio - " + nativePath
+            if (typeof settingsManager !== "undefined" && settingsManager !== null) {
+                settingsManager.addRecentFile(nativePath)
+            }
+            return true
+        }
+        return false
+    }
+
     // Operational Dialogs
     OpenProjectDialog { id: openProjectDialog; objectName: "openProjectDialog" }
     NewProjectDialog  { id: newProjectDialog;  objectName: "newProjectDialog" }
@@ -76,20 +106,10 @@ ApplicationWindow {
         objectName: "localFileLoader"
         title: qsTr("Open Story Manuscript")
         currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
-        nameFilters: ["Markdown files (*.md)", "Text files (*.txt)", "HTML files (*.html)"]
+        nameFilters: ["All Script Files (*.md *.txt *.html *.fountain)", "Markdown files (*.md)", "Text files (*.txt)", "HTML files (*.html)", "All Files (*)"]
         onAccepted: {
             let nativePath = urlToLocalPath(selectedFile)
-            if (storyDocument.loadLocalFile(nativePath)) {
-                rootWindow.currentFilePath = nativePath
-                rootWindow.isDocumentLoaded = true
-                workspaceView.mainEditorPane.isDocumentLoaded = true
-                // Add this line to push text into the editor:
-                workspaceView.mainEditorPane.textContent = storyDocument.rawText
-                rootWindow.title = "Story Builder Studio - " + nativePath
-            }
-            if (nativePath !== "" && typeof settingsManager !== "undefined" && settingsManager !== null) {
-                settingsManager.addRecentFile(nativePath)
-            }
+            rootWindow.openScriptFile(nativePath)
         }
     }
 
@@ -203,14 +223,7 @@ ApplicationWindow {
         }
 
         onRecentDocumentTriggered: (filePath) => {
-            if (storyDocument.loadLocalFile(filePath)) {
-                rootWindow.currentFilePath = filePath
-                rootWindow.isDocumentLoaded = true
-               // Add these lines:
-               workspaceView.mainEditorPane.isDocumentLoaded = true
-               workspaceView.mainEditorPane.textContent = storyDocument.rawText
-                rootWindow.title = "Story Builder Studio - " + filePath
-            }
+            rootWindow.openScriptFile(filePath)
         }
         onSettingsTriggered: settingsControlPanel.open()
         onDocumentationTriggered: helpDialogInstance.open()
@@ -238,28 +251,35 @@ ApplicationWindow {
         onNewScriptTriggered: {
             rootWindow.forceBufferPurge()
             rootWindow.isDocumentLoaded = true
+            if (workspaceView && workspaceView.mainEditorPane) {
+                workspaceView.mainEditorPane.isDocumentLoaded = true
+            }
         }
-        onOpenScriptTriggered: localFileLoader.open()
+        onOpenScriptTriggered: {
+            localFileLoader.currentFolder = rootWindow.resolveEpisodeScriptsFolderUrl()
+            localFileLoader.open()
+        }
         onSaveScriptTriggered: rootWindow.executeSaveSequence()
         onCloseScriptTriggered: rootWindow.executeCloseSequence()
         onRecentDocumentTriggered: (filePath) => {
-            if (storyDocument.loadLocalFile(filePath)) {
-                rootWindow.currentFilePath = filePath
-                rootWindow.isDocumentLoaded = true
-                mainEditorPane.isDocumentLoaded = true
-                mainEditorPane.paneTitle = filePath
-                // Add this line:
-                mainEditorPane.textContent = storyDocument.rawText
-                rootWindow.title = "Story Builder Studio - " + filePath
-            }
+            rootWindow.openScriptFile(filePath)
         }
     }
 
     // --- Pipeline Operations ---
     function executeSaveSequence() {
+        if (workspaceView && workspaceView.mainEditorPane) {
+            storyDocument.rawText = workspaceView.mainEditorPane.textContent
+        }
+
         if (rootWindow.currentFilePath === "") {
+            localFileSaver.currentFolder = rootWindow.resolveEpisodeScriptsFolderUrl()
             localFileSaver.open()
             return true
+        }
+
+        if (workspaceView && workspaceView.mainEditorPane) {
+            workspaceView.mainEditorPane.paneTitle = rootWindow.currentFilePath
         }
 
         let fmt = "markdown"

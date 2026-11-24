@@ -63,6 +63,11 @@ Dialog {
         }
     }
 
+    readonly property bool isRemoteProfile: {
+        const t = (estimateDialog.engineType || "").toLowerCase()
+        return t === "remote" || t.startsWith("gemini_") || t.startsWith("openai_")
+    }
+
     // Direct mock properties for headless QTest harness assertion
     property string mockEstimatedTime: ""
     property real mockPeakRamGb: -1.0
@@ -101,6 +106,16 @@ Dialog {
         return []
     }
 
+    function syncParametersToBackend() {
+        if (typeof inferenceEstimator !== "undefined" && inferenceEstimator) {
+            inferenceEstimator.engineType = estimateDialog.engineType
+            inferenceEstimator.promptText = estimateDialog.promptText
+            inferenceEstimator.steps = estimateDialog.steps
+            inferenceEstimator.width = estimateDialog.widthVal
+            inferenceEstimator.height = estimateDialog.heightVal
+        }
+    }
+
     function setReferences(filePaths) {
         if (typeof inferenceEstimator !== "undefined" && inferenceEstimator) {
             inferenceEstimator.referenceFilePaths = filePaths
@@ -114,9 +129,14 @@ Dialog {
     }
 
     function recalculate() {
+        syncParametersToBackend()
         if (typeof inferenceEstimator !== "undefined" && inferenceEstimator) {
             inferenceEstimator.recalculate()
         }
+    }
+
+    Component.onCompleted: {
+        estimateDialog.recalculate()
     }
 
     onAboutToShow: {
@@ -156,7 +176,7 @@ Dialog {
                 Text {
                     id: headerSubtitleText
                     objectName: "headerSubtitleText"
-                    text: estimateDialog.engineType === "remote"
+                    text: estimateDialog.isRemoteProfile
                           ? qsTr("Remote REST API Execution Profile (Cloud / Server)")
                           : qsTr("Offline CPU Execution Profile (AVX2 Active)")
                     color: "#888888"

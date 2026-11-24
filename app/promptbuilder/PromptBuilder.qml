@@ -129,6 +129,23 @@ Item {
     signal videoRenderFinished(string outputDir, int frameCount, double fps)
     signal engineErrorOccurred(string driverId, string errorMessage)
 
+    function resolveAttachFolderUrl() {
+        if (typeof projectManager === "undefined" || !projectManager || !projectManager.isProjectOpen) {
+            return ""
+        }
+        let base = projectManager.currentProjectPath
+        if (!base || base.length === 0) return ""
+
+        let sub = ""
+        if (targetAssetType === "image") sub = "/assets/images"
+        else if (targetAssetType === "audio") sub = "/assets/audio"
+        else if (targetAssetType === "video") sub = "/assets/video"
+        else if (targetAssetType === "script") sub = "/scripts"
+
+        let fullPath = (base + sub).replace(/\\/g, "/")
+        return (Qt.platform.os === "windows" ? "file:///" : "file://") + fullPath
+    }
+
     function addAttachedFiles(fileUrls) {
         let list = attachedFileList.slice()
         for (let i = 0; i < fileUrls.length; ++i) {
@@ -182,12 +199,8 @@ Item {
 
     function appendResponseText(text) {
         isGenerating = false
-        if (responseDisplayArea.text.length > 0) {
-            responseDisplayArea.appendIncomingText("\n" + text)
-        } else {
-            responseDisplayArea.appendIncomingText(text)
-        }
-        recordAuditTransaction(targetAssetType, text)
+        responseDisplayArea.appendIncomingText(text)
+        recordAuditTransaction(targetAssetType, text, false)
     }
 
     function recordAuditTransaction(assetType, payloadText, isThinkText) {
@@ -203,7 +216,7 @@ Item {
                 lastSentTimestamp,
                 receivedTimestamp,
                 selectedOptions,
-                isThinkText = isThinkText
+                Boolean(isThinkText)
             )
         }
     }
@@ -224,6 +237,12 @@ Item {
         id: standaloneEstimateDialog
         engineType: promptBuilderRoot.resolvedEstimatorEngine
         promptText: promptTextArea.text
+        steps: (inferenceSettingsPanel.currentOptions && inferenceSettingsPanel.currentOptions.steps !== undefined)
+               ? inferenceSettingsPanel.currentOptions.steps : 4
+        widthVal: (inferenceSettingsPanel.currentOptions && inferenceSettingsPanel.currentOptions.width !== undefined)
+                  ? inferenceSettingsPanel.currentOptions.width : 512
+        heightVal: (inferenceSettingsPanel.currentOptions && inferenceSettingsPanel.currentOptions.height !== undefined)
+                   ? inferenceSettingsPanel.currentOptions.height : 512
     }
 
     implicitWidth: 600
@@ -346,16 +365,26 @@ Item {
 
                         onClicked: {
                             if (!activeDriver) return
+                            let driverId = activeDriver.driverId
                             if (activeDriver.isModelLoaded) {
-                                responseDisplayArea.appendIncomingText("\n>>> Unloading " + activeDriver.driverId + " from memory...")
+                                responseDisplayArea.appendIncomingText(">>> Unloading " + driverId + " from memory...")
                                 activeDriver.unloadModel()
+                                if (!activeDriver.isModelLoaded) {
+                                    responseDisplayArea.appendIncomingText(">>> " + driverId + " unloaded.")
+                                }
                             } else {
                                 let selectedModel = modelSelectorBox.visible ? modelSelectorBox.currentText : ""
-                                responseDisplayArea.appendIncomingText("\n>>> Initializing " + activeDriver.driverId + " with model: " + (selectedModel.length > 0 ? selectedModel : "(default)") + "...")
+                                responseDisplayArea.appendIncomingText(">>> Initializing " + driverId + " with model: " + (selectedModel.length > 0 ? selectedModel : "(default)") + "...")
                                 let config = (typeof settingsManager !== "undefined" && settingsManager !== null)
-                                           ? settingsManager.getDriverLoadConfig(activeDriver.driverId, selectedModel)
+                                           ? settingsManager.getDriverLoadConfig(driverId, selectedModel)
                                            : ({})
-                                activeDriver.loadModel(config)
+                                let loaded = activeDriver.loadModel(config)
+                                if (loaded) {
+                                    let readyName = (activeDriver.loadedModelName && activeDriver.loadedModelName.length > 0)
+                                                    ? activeDriver.loadedModelName
+                                                    : (selectedModel.length > 0 ? selectedModel : driverId)
+                                    responseDisplayArea.appendIncomingText(">>> " + driverId + " ready (" + readyName + ").")
+                                }
                             }
                         }
                     }
@@ -383,6 +412,7 @@ Item {
                             radius: 4
                         }
                         onClicked: {
+                            standaloneEstimateDialog.setReferences(promptBuilderRoot.attachedFileList)
                             standaloneEstimateDialog.recalculate()
                             standaloneEstimateDialog.open()
                         }
@@ -416,7 +446,13 @@ Item {
                             background: null
 
                             function appendIncomingText(newText) {
-                                responseDisplayArea.append(newText)
+                                let cleaned = String(newText).replace(/^\n+/, "")
+                                if (cleaned.length === 0) return
+                                if (responseDisplayArea.text.length === 0) {
+                                    responseDisplayArea.text = cleaned
+                                } else {
+                                    responseDisplayArea.append(cleaned)
+                                }
                                 responseDisplayArea.cursorPosition = responseDisplayArea.length
                             }
                         }
@@ -480,7 +516,7 @@ Item {
                         Button {
                             id: settingsTabBtn
                             objectName: "settingsTabBtn"
-                            text: qsTr("⚙ Runtime Settings")
+                            text: qsTr("⚙ Model Options")
                             implicitHeight: 26
                             background: Rectangle {
                                 color: workspaceStack.currentIndex === 1 ? "#1A4A68" : "#0B1B26"
@@ -505,7 +541,7 @@ Item {
                     Button {
                         id: toggleDrawerBtn
                         objectName: "toggleDrawerBtn"
-                        text: promptOptionsPanel.visible ? qsTr("▲ Hide Prompt Options") : qsTr("▼ Filesystem Directives")
+                        text: promptOptionsPanel.visible ? qsTr("▲ Hide Prompts") : qsTr("▼ Prompts")
                         implicitHeight: 26
                         font.pixelSize: 11
                         background: Rectangle {
@@ -540,7 +576,7 @@ Item {
                     Button {
                         id: editDefaultsBtn
                         objectName: "editDefaultsBtn"
-                        text: qsTr("✏ Edit Defaults")
+                        text: qsTr("✏ Edit Prompts")
                         implicitHeight: 26
                         font.pixelSize: 11
                         background: Rectangle {
@@ -706,7 +742,13 @@ Item {
                                         horizontalAlignment: Text.AlignHCenter
                                         verticalAlignment: Text.AlignVCenter
                                     }
-                                    onClicked: attachFileDialog.open()
+                                    onClicked: {
+                                        let folderUrl = promptBuilderRoot.resolveAttachFolderUrl()
+                                        if (folderUrl.length > 0) {
+                                            attachFileDialog.currentFolder = folderUrl
+                                        }
+                                        attachFileDialog.open()
+                                    }
                                 }
 
                                 ScrollView {
@@ -929,7 +971,7 @@ Item {
                         promptBuilderRoot.lastRawPrompt = promptTextArea.text.trim()
                         promptBuilderRoot.lastSentTimestamp = new Date().toISOString()
 
-                        responseDisplayArea.appendIncomingText("\n>>> Dispatching job to " + activeDriver.driverId + "...")
+                        responseDisplayArea.appendIncomingText(">>> Dispatching job to " + activeDriver.driverId + "...")
 
                         let targetDir = ""
                         if (typeof projectManager !== "undefined" && projectManager && projectManager.isProjectOpen) {
@@ -1096,7 +1138,7 @@ Item {
             // 2. Image generation
             else if (payload.candidates !== undefined) {
                 summaryText = "Image generation finished: " + (payload.count || payload.candidates.length) + " candidate variations ready."
-                responseDisplayArea.append("\n>>> " + summaryText)
+                responseDisplayArea.appendIncomingText(">>> " + summaryText)
 
                 // Bubble candidates array up to the workspace view
                 promptBuilderRoot.imageCandidatesReady(payload.candidates)
@@ -1104,13 +1146,13 @@ Item {
             // 3. Audio generation
             else if (payload.filePath !== undefined) {
                 summaryText = "Audio saved to: " + payload.filePath
-                responseDisplayArea.append("\n>>> " + summaryText)
+                responseDisplayArea.appendIncomingText(">>> " + summaryText)
                 promptBuilderRoot.audioGenerated(payload.filePath)
             }
             // 4. Video generation
             else if (payload.outputDir !== undefined) {
                 summaryText = "Video render finished: " + (payload.frameCount || 0) + " frames @ " + (payload.fps || 24) + " FPS saved to " + payload.outputDir
-                responseDisplayArea.append("\n>>> " + summaryText)
+                responseDisplayArea.appendIncomingText(">>> " + summaryText)
                 promptBuilderRoot.videoRenderFinished(payload.outputDir, payload.frameCount || 0, payload.fps || 24.0)
             }
 
@@ -1123,7 +1165,7 @@ Item {
         function onEngineError(errorMessage) {
             promptBuilderRoot.isGenerating = false
             let driverName = promptBuilderRoot.activeDriver ? promptBuilderRoot.activeDriver.driverId : "Engine"
-            responseDisplayArea.append("\n[ERROR " + driverName + "]: " + errorMessage)
+            responseDisplayArea.appendIncomingText("[ERROR " + driverName + "]: " + errorMessage)
             promptBuilderRoot.engineErrorOccurred(driverName, errorMessage)
         }
     }

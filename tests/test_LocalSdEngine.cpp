@@ -157,7 +157,11 @@ void Test_LocalSdEngine::testUnloadClearsContextState()
     engine.unloadModel();
 
     QVERIFY(!engine.isModelLoaded());
+#ifdef SD_MODE_VIDEO
+    QVERIFY(engine.isVideoMode());
+#else
     QVERIFY(!engine.isVideoMode());
+#endif
     QCOMPARE(engine.activeVideoArch(), LocalSdEngine::VIDEO_ARCH_NONE);
     QVERIFY(engine.loadedModelName().isEmpty());
 }

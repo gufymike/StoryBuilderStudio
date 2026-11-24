@@ -13,6 +13,7 @@
 **
 ****************************************************************************/
 import QtQuick
+import QtCore
 import QtQuick.Controls
 import QtQuick.Layouts
 import StoryBuilderStudio
@@ -26,6 +27,7 @@ Rectangle {
     radius: 6
 
     property string currentProjectPath: ""
+    property string currentEpisodePath: ""
     property string targetCategory: "text" // "text", "image", "audio", "video"
     property var activeSelectedList: []
 
@@ -47,12 +49,10 @@ Rectangle {
         if (mockCategoriesData !== null) {
             return mockCategoriesData[category] || []
         }
-        //console.log("[PromptOptionsPanel.qml] Getting files for : " + category)
         if (typeof promptManager !== "undefined" && promptManager !== null) {
             if (typeof promptManager.getFilesForCategory === "function") {
                 return promptManager.getFilesForCategory(category)
             }
-            // Fallback to checking availablePrompts
             let items = promptManager.availablePrompts || []
             let fileList = []
             for (let i = 0; i < items.length; ++i) {
@@ -60,7 +60,6 @@ Rectangle {
                     fileList.push(items[i].fileName)
                 }
             }
-            //console.log("[PromptOptionsPanel.qml] found " + fileList.length + " files")
             return fileList
         }
         return []
@@ -70,20 +69,40 @@ Rectangle {
         if (mockCategoriesData !== null) return fileName
         if (typeof promptManager !== "undefined" && promptManager !== null) {
             let cat = (category === "script") ? "text" : category
+
+            // 1. Check active availablePrompts list first
             let items = promptManager.availablePrompts || []
             for (let i = 0; i < items.length; ++i) {
-                if (items[i].fileName === fileName && items[i].category === cat) {
-                    return promptManager.readPromptFile(items[i].fullPath)
+                if (items[i].fileName === fileName && items[i].category === cat && items[i].fullPath) {
+                    let content = promptManager.readPromptFile(items[i].fullPath)
+                    if (content && content.trim().length > 0) return content
                 }
             }
+
+            // 2. Check Episode-scoped prompt directory
+            if (currentEpisodePath && currentEpisodePath.length > 0) {
+                let epContent = promptManager.readPromptFile(currentEpisodePath + "/prompts/" + cat + "/" + fileName)
+                if (epContent && epContent.trim().length > 0) return epContent
+            }
+
+            // 3. Check Series-scoped prompt directory
+            if (currentProjectPath && currentProjectPath.length > 0) {
+                let seriesContent = promptManager.readPromptFile(currentProjectPath + "/prompts/" + cat + "/" + fileName)
+                if (seriesContent && seriesContent.trim().length > 0) return seriesContent
+            }
+
+            // 4. Read directly from embedded QRC system prompts
+            let sysContent = promptManager.readPromptFile(":/prompts/" + cat + "/" + fileName)
+            if (sysContent && sysContent.trim().length > 0) return sysContent
         }
         return fileName
     }
 
     function updateProjectPath(seriesPath, episodePath) {
-        currentProjectPath = seriesPath
+        currentProjectPath = seriesPath || ""
+        currentEpisodePath = episodePath || ""
         if (typeof promptManager !== "undefined" && promptManager !== null) {
-            promptManager.setPaths(seriesPath, episodePath || "")
+            promptManager.setPaths(currentProjectPath, currentEpisodePath)
         }
     }
 
@@ -134,13 +153,22 @@ Rectangle {
                             width: fileListView.width
                             height: 24
                             ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Add %1 to prompt").arg(modelData)
+                            ToolTip.text: cachedContent !== modelData
+                                          ? cachedContent
+                                          : qsTr("Add %1 to prompt").arg(modelData)
+
                             property string cachedContent: ""
+                            property bool isInitialized: false
+
+                            function refreshResolvedContent() {
+                                let loaded = promptOptionsPanelRoot.loadContent(categoryColumn.categoryName, modelData)
+                                cachedContent = (loaded && loaded.trim().length > 0) ? loaded.trim() : modelData
+                            }
 
                             Component.onCompleted: {
-                                let loaded = promptOptionsPanelRoot.loadContent(categoryColumn.categoryName, modelData)
-                                cachedContent = loaded.trim().length > 0 ? loaded.trim() : modelData
+                                refreshResolvedContent()
                                 checked = promptOptionsPanelRoot.activeSelectedList.indexOf(cachedContent) !== -1
+                                isInitialized = true
                             }
 
                             contentItem: Text {
@@ -175,6 +203,10 @@ Rectangle {
                             }
 
                             onCheckedChanged: {
+                                if (!isInitialized) return
+                                if (cachedContent === modelData) {
+                                    refreshResolvedContent()
+                                }
                                 promptOptionsPanelRoot.promptOptionToggled(cachedContent, checked)
                             }
                         }

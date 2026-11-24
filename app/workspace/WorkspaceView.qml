@@ -42,10 +42,22 @@ Item {
     signal saveScriptTriggered()
     signal closeScriptTriggered()
     signal recentDocumentTriggered(string filePath)
+
+    function refreshAudioWorkspace(filePath) {
+        if (typeof projectManager !== "undefined" && projectManager !== null && projectManager.isProjectOpen) {
+            audioWorkspaceWidget.updateProjectPath(projectManager.currentProjectPath)
+        }
+        if (audioWorkspaceWidget.directoryModel && typeof audioWorkspaceWidget.directoryModel.refresh === "function") {
+            audioWorkspaceWidget.directoryModel.refresh()
+        }
+        if (filePath && filePath.length > 0 && typeof audioWorkspaceWidget.loadTrack === "function") {
+            audioWorkspaceWidget.loadTrack(filePath)
+        }
+    }
+
     NewProjectDialog {
         id: newProjectDialog
     }
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -194,7 +206,7 @@ Item {
                         color: workspaceRoot.isScriptReady ? "#00F0FF" : "#FF4444"
                     }
                     Text {
-                        text: qsTr("📜 Script")
+                        text: qsTr("📝 Script")
                         color: "#FFFFFF"
                         style: Text.Outline
                         styleColor: "#000000"
@@ -466,6 +478,16 @@ Item {
         }
     }
 
+    // Auto-refresh Audio gallery & waveform player when audio.cpp or Kokoro finishes
+    Connections {
+        target: (typeof engineRegistry !== "undefined" && engineRegistry !== null) ? engineRegistry.activeAudioDriver : null
+        ignoreUnknownSignals: true
+        function onGenerationFinished(payload) {
+            if (!payload) return
+            workspaceRoot.refreshAudioWorkspace(payload.filePath || "")
+        }
+    }
+
     // Project state synchronization
     Connections {
         target: typeof projectManager !== "undefined" ? projectManager : null
@@ -489,7 +511,7 @@ Item {
         function onIsProjectOpenChanged() { syncProjectState() }
     }
 
-    // refresh video gallery.
+    // Refresh video gallery
     Connections {
         target: (typeof engineRegistry !== "undefined" && engineRegistry !== null) ? engineRegistry.activeVideoDriver : null
         ignoreUnknownSignals: true

@@ -17,6 +17,71 @@
 #include <QDebug>
 #include <QThread>
 #include <QDateTime>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QFuture>
+#include <QHash>
+#include <cstring>
+
+namespace {
+QMutex s_sdLogMutex;
+QString s_lastSdError;
+
+QMutex s_workerMutex;
+QHash<const LocalSdEngine *, QFuture<void>> s_activeWorkers;
+
+void clearLastSdError()
+{
+    QMutexLocker locker(&s_sdLogMutex);
+    s_lastSdError.clear();
+}
+
+void recordSdError(const QString &msg)
+{
+    QMutexLocker locker(&s_sdLogMutex);
+    s_lastSdError = msg;
+}
+
+QString takeLastSdError()
+{
+    QMutexLocker locker(&s_sdLogMutex);
+    return s_lastSdError;
+}
+
+QString formatActionableSdError(const QString &prefix, const QString &rawError)
+{
+    if (rawError.isEmpty()) {
+        return prefix;
+    }
+
+    if (rawError.contains(QStringLiteral("read tensor data failed"), Qt::CaseInsensitive) ||
+        rawError.contains(QStringLiteral("weight preparation"), Qt::CaseInsensitive) ||
+        rawError.contains(QStringLiteral("failed to encode prompt"), Qt::CaseInsensitive)) {
+        return QStringLiteral("%1: %2 (Check available RAM/pagefile or verify the GGUF model file is complete.)")
+        .arg(prefix, rawError);
+    }
+
+    return QStringLiteral("%1: %2").arg(prefix, rawError);
+}
+
+void trackWorkerFuture(const LocalSdEngine *engine, const QFuture<void> &future)
+{
+    QMutexLocker locker(&s_workerMutex);
+    s_activeWorkers.insert(engine, future);
+}
+
+void waitForWorkerFuture(const LocalSdEngine *engine)
+{
+    QFuture<void> future;
+    {
+        QMutexLocker locker(&s_workerMutex);
+        future = s_activeWorkers.take(engine);
+    }
+    if (future.isValid() && future.isRunning()) {
+        future.waitForFinished();
+    }
+}
+} // namespace
 
 static void sd_log_forwarder(enum sd_log_level_t level, const char *text, void *data) {
     Q_UNUSED(data);
@@ -28,7 +93,10 @@ static void sd_log_forwarder(enum sd_log_level_t level, const char *text, void *
     case SD_LOG_INFO:
     case SD_LOG_VERBOSE: qInfo() << "[sd.cpp]" << msg; break;
     case SD_LOG_WARN: qWarning() << "[sd.cpp]" << msg; break;
-    case SD_LOG_ERROR: qCritical() << "[sd.cpp-ERROR]" << msg; break;
+    case SD_LOG_ERROR:
+        recordSdError(msg);
+        qCritical() << "[sd.cpp-ERROR]" << msg;
+        break;
     }
 }
 
@@ -77,14 +145,20 @@ void LocalSdEngine::unloadModel()
     if (m_isBusy) {
         cancelGeneration();
     }
+    waitForWorkerFuture(this);
 
     if (m_sdCtx) {
         qInfo() << "[LocalSdEngine] Freeing SD context...";
         free_sd_ctx(m_sdCtx);
         m_sdCtx = nullptr;
+        qInfo() << "[LocalSdEngine] SD context freed.";
     }
     m_isLoaded = false;
+#ifdef SD_MODE_VIDEO
+    m_isVideoMode = true;
+#else
     m_isVideoMode = false;
+#endif
     m_activeVideoArch = VIDEO_ARCH_NONE;
     m_loadedModelName.clear();
 
@@ -102,9 +176,15 @@ void LocalSdEngine::cancelGeneration()
 bool LocalSdEngine::loadModel(const QVariantMap &config)
 {
     unloadModel();
+    clearLastSdError();
     sd_set_log_callback(sd_log_forwarder, nullptr);
 
-    QString mode = config.value(QStringLiteral("mode"), QStringLiteral("image")).toString();
+#ifdef SD_MODE_VIDEO
+    QString defaultMode = QStringLiteral("video");
+#else
+    QString defaultMode = QStringLiteral("image");
+#endif
+    QString mode = config.value(QStringLiteral("mode"), defaultMode).toString();
     m_isVideoMode = (mode == QStringLiteral("video"));
 
     QString diffPath = config.value(QStringLiteral("diffusionModelPath")).toString();
@@ -126,6 +206,18 @@ bool LocalSdEngine::loadImageModel(const QString &diffPath, const QString &clipL
         emit engineError(tr("Diffusion model path does not exist: %1").arg(diffPath));
         return false;
     }
+    if (!clipL.isEmpty() && !QFileInfo::exists(clipL)) {
+        emit engineError(tr("CLIP-L encoder path does not exist: %1").arg(clipL));
+        return false;
+    }
+    if (!t5.isEmpty() && !QFileInfo::exists(t5)) {
+        emit engineError(tr("T5-XXL encoder path does not exist: %1").arg(t5));
+        return false;
+    }
+    if (!vae.isEmpty() && !QFileInfo::exists(vae)) {
+        emit engineError(tr("VAE model path does not exist: %1").arg(vae));
+        return false;
+    }
 
     sd_ctx_params_t params;
     sd_ctx_params_init(&params);
@@ -143,12 +235,13 @@ bool LocalSdEngine::loadImageModel(const QString &diffPath, const QString &clipL
 
     m_sdCtx = new_sd_ctx(&params);
     if (!m_sdCtx) {
-        emit engineError(tr("Failed to initialize SD image context."));
+        emit engineError(formatActionableSdError(tr("Failed to initialize SD image context"), takeLastSdError()));
         return false;
     }
 
     m_isLoaded = true;
     m_loadedModelName = QFileInfo(diffPath).baseName();
+    qInfo() << "[LocalSdEngine] Loaded SD image model:" << m_loadedModelName;
     emit modelLoadedChanged(true);
     emit loadedModelNameChanged(m_loadedModelName);
     emit optionsDiscovered();
@@ -159,6 +252,14 @@ bool LocalSdEngine::loadVideoModelInternal(const QString &diffPath, const QStrin
 {
     if (diffPath.isEmpty() || !QFileInfo::exists(diffPath)) {
         emit engineError(tr("Video diffusion model path does not exist: %1").arg(diffPath));
+        return false;
+    }
+    if (!t5.isEmpty() && !QFileInfo::exists(t5)) {
+        emit engineError(tr("Video text encoder (T5/UMT5) path does not exist: %1").arg(t5));
+        return false;
+    }
+    if (!vae.isEmpty() && !QFileInfo::exists(vae)) {
+        emit engineError(tr("Video VAE path does not exist: %1").arg(vae));
         return false;
     }
 
@@ -178,13 +279,14 @@ bool LocalSdEngine::loadVideoModelInternal(const QString &diffPath, const QStrin
 
     m_sdCtx = new_sd_ctx(&params);
     if (!m_sdCtx) {
-        emit engineError(tr("Failed to initialize SD video context."));
+        emit engineError(formatActionableSdError(tr("Failed to initialize SD video context"), takeLastSdError()));
         return false;
     }
 
     m_isLoaded = true;
     m_activeVideoArch = isWan ? VIDEO_ARCH_WAN : VIDEO_ARCH_LTX;
     m_loadedModelName = QFileInfo(diffPath).baseName();
+    qInfo() << "[LocalSdEngine] Loaded SD video model:" << m_loadedModelName;
 
     emit modelLoadedChanged(true);
     emit loadedModelNameChanged(m_loadedModelName);
@@ -296,8 +398,13 @@ void LocalSdEngine::generate(const QString &prompt,
 {
     Q_UNUSED(systemPrompt);
 
-    if (!isModelLoaded()) {
+    if (!isModelLoaded() || !m_sdCtx) {
         emit engineError(tr("No diffusion model loaded."));
+        return;
+    }
+
+    if (m_isBusy) {
+        emit engineError(tr("Diffusion engine is already busy generating."));
         return;
     }
 
@@ -308,6 +415,11 @@ void LocalSdEngine::generate(const QString &prompt,
     int baseSeed = runtimeOverrides.value(QStringLiteral("seed"), -1).toInt();
 
     if (m_isVideoMode) {
+        if (!sd_ctx_supports_video_generation(m_sdCtx)) {
+            emit engineError(tr("Loaded diffusion model does not support video generation."));
+            return;
+        }
+
         int frames = runtimeOverrides.value(QStringLiteral("video_frames"), m_currentOptions.value(QStringLiteral("video_frames"), 25)).toInt();
         int fps = runtimeOverrides.value(QStringLiteral("fps"), m_currentOptions.value(QStringLiteral("fps"), 16)).toInt();
         float shift = runtimeOverrides.value(QStringLiteral("flow_shift"), m_currentOptions.value(QStringLiteral("flow_shift"), 3.0f)).toFloat();
@@ -315,7 +427,7 @@ void LocalSdEngine::generate(const QString &prompt,
         QString initImg;
         for (const QString &f : attachedFiles) {
             QString lower = f.toLower();
-            if (lower.endsWith(QStringLiteral(".png")) || lower.endsWith(QStringLiteral(".jpg")) || lower.endsWith(QStringLiteral(".webp"))) {
+            if (lower.endsWith(QStringLiteral(".png")) || lower.endsWith(QStringLiteral(".jpg")) || lower.endsWith(QStringLiteral(".jpeg")) || lower.endsWith(QStringLiteral(".webp"))) {
                 initImg = f;
                 break;
             }
@@ -332,12 +444,19 @@ void LocalSdEngine::runImageGeneration(const QString &prompt, int samples, int w
 {
     m_isBusy = true;
     emit busyChanged(true);
+    clearLastSdError();
 
-    (void)QtConcurrent::run([this, prompt, samples, width, height, steps, cfgScale, baseSeed]() {
+    QFuture<void> future = QtConcurrent::run([this, prompt, samples, width, height, steps, cfgScale, baseSeed]() {
         QVariantList candidateBase64List;
         QByteArray promptBytes = prompt.toUtf8();
+        QString generationError;
 
         for (int i = 0; i < samples; ++i) {
+            if (!m_sdCtx) {
+                generationError = tr("Diffusion context was unloaded during generation.");
+                break;
+            }
+
             sd_img_gen_params_t genParams;
             sd_img_gen_params_init(&genParams);
 
@@ -359,7 +478,7 @@ void LocalSdEngine::runImageGeneration(const QString &prompt, int samples, int w
             if (ok && outImages && outImages->count > 0 && outImages->items) {
                 for (int j = 0; j < outImages->count; ++j) {
                     const sd_image_t &sdImg = outImages->items[j].image;
-                    if (!sdImg.data) continue;
+                    if (!sdImg.data || sdImg.width == 0 || sdImg.height == 0) continue;
 
                     QImage img(sdImg.data, sdImg.width, sdImg.height, sdImg.width * sdImg.channel, QImage::Format_RGB888);
                     QByteArray rawBytes;
@@ -368,13 +487,30 @@ void LocalSdEngine::runImageGeneration(const QString &prompt, int samples, int w
                     img.save(&buffer, "PNG");
                     candidateBase64List.append(QStringLiteral("data:image/png;base64,") + rawBytes.toBase64());
                 }
+                free_sd_image_generation_result(outImages);
+            } else {
+                if (outImages) {
+                    free_sd_image_generation_result(outImages);
+                }
+                generationError = formatActionableSdError(tr("Image generation failed"), takeLastSdError());
+                break;
             }
-            if (outImages) free_sd_image_generation_result(outImages);
         }
 
-        QMetaObject::invokeMethod(this, [this, candidateBase64List]() {
+        QMetaObject::invokeMethod(this, [this, candidateBase64List, generationError]() {
             m_isBusy = false;
             emit busyChanged(false);
+
+            if (candidateBase64List.isEmpty()) {
+                emit engineError(generationError.isEmpty()
+                                 ? tr("Image generation produced 0 images.")
+                                 : generationError);
+                return;
+            }
+
+            if (!generationError.isEmpty()) {
+                qWarning() << "[LocalSdEngine] Partial batch completed before error:" << generationError;
+            }
 
             QVariantMap result;
             result[QStringLiteral("candidates")] = candidateBase64List;
@@ -382,8 +518,10 @@ void LocalSdEngine::runImageGeneration(const QString &prompt, int samples, int w
             result[QStringLiteral("category")] = QStringLiteral("image");
 
             emit generationFinished(result);
-        });
+        }, Qt::QueuedConnection);
     });
+
+    trackWorkerFuture(this, future);
 }
 
 void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inputImagePath, const QString &outputDirectory,
@@ -391,6 +529,7 @@ void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inp
 {
     m_isBusy = true;
     emit busyChanged(true);
+    clearLastSdError();
     bool isWan = (m_activeVideoArch == VIDEO_ARCH_WAN);
 
     int effectiveFrames = videoFrames;
@@ -399,7 +538,16 @@ void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inp
         if (effectiveFrames < 5) effectiveFrames = 17;
     }
 
-    (void)QtConcurrent::run([this, prompt, inputImagePath, outputDirectory, width, height, effectiveFrames, fps, steps, cfgScale, flowShift, isWan, baseSeed]() {
+    QFuture<void> future = QtConcurrent::run([this, prompt, inputImagePath, outputDirectory, width, height, effectiveFrames, fps, steps, cfgScale, flowShift, isWan, baseSeed]() {
+        if (!m_sdCtx) {
+            QMetaObject::invokeMethod(this, [this]() {
+                m_isBusy = false;
+                emit busyChanged(false);
+                emit engineError(tr("Diffusion context is not initialized."));
+            }, Qt::QueuedConnection);
+            return;
+        }
+
         sd_vid_gen_params_t vidParams;
         sd_vid_gen_params_init(&vidParams);
 
@@ -426,13 +574,32 @@ void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inp
             vidParams.sample_params.flow_shift    = 1.0f;
         }
 
-        QImage initImg;
-        if (!inputImagePath.isEmpty() && initImg.load(inputImagePath)) {
-            initImg = initImg.convertToFormat(QImage::Format_RGB888).scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-            vidParams.init_image.width   = initImg.width();
-            vidParams.init_image.height  = initImg.height();
+        // Pack init image into contiguous RGB888 bytes without QImage 4-byte scanline padding
+        QByteArray packedInitRgb;
+        if (!inputImagePath.isEmpty()) {
+            QImage initImg;
+            if (!initImg.load(inputImagePath)) {
+                QMetaObject::invokeMethod(this, [this, inputImagePath]() {
+                    m_isBusy = false;
+                    emit busyChanged(false);
+                    emit engineError(tr("Failed to load reference image for video generation: %1").arg(inputImagePath));
+                }, Qt::QueuedConnection);
+                return;
+            }
+
+            initImg = initImg.convertToFormat(QImage::Format_RGB888)
+                          .scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+            const int rowBytes = initImg.width() * 3;
+            packedInitRgb.resize(rowBytes * initImg.height());
+            for (int y = 0; y < initImg.height(); ++y) {
+                std::memcpy(packedInitRgb.data() + (y * rowBytes), initImg.constScanLine(y), static_cast<size_t>(rowBytes));
+            }
+
+            vidParams.init_image.width   = static_cast<uint32_t>(initImg.width());
+            vidParams.init_image.height  = static_cast<uint32_t>(initImg.height());
             vidParams.init_image.channel = 3;
-            vidParams.init_image.data    = initImg.bits();
+            vidParams.init_image.data    = reinterpret_cast<uint8_t *>(packedInitRgb.data());
             vidParams.strength           = 0.85f;
         }
 
@@ -444,27 +611,43 @@ void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inp
             targetDir = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation))
             .filePath(QStringLiteral("vid_%1").arg(QDateTime::currentMSecsSinceEpoch()));
         }
-        QDir().mkpath(targetDir);
 
         int numFramesOut = 0;
         int effectiveFps = fps;
+        QString generationError;
 
         if (ok && videoResult && videoResult->frame_count > 0 && videoResult->frames) {
-            numFramesOut = videoResult->frame_count;
+            QDir().mkpath(targetDir);
             effectiveFps = (videoResult->fps > 0) ? videoResult->fps : fps;
 
-            for (int i = 0; i < numFramesOut; ++i) {
+            for (int i = 0; i < videoResult->frame_count; ++i) {
                 const sd_image_t &frame = videoResult->frames[i];
-                if (!frame.data) continue;
+                if (!frame.data || frame.width == 0 || frame.height == 0) continue;
                 QImage f(frame.data, frame.width, frame.height, frame.width * frame.channel, QImage::Format_RGB888);
-                f.save(QStringLiteral("%1/frame_%2.png").arg(targetDir).arg(i, 4, 10, QChar('0')));
+                if (f.save(QStringLiteral("%1/frame_%2.png").arg(targetDir).arg(numFramesOut, 4, 10, QChar('0')))) {
+                    ++numFramesOut;
+                }
             }
+        }
+
+        if (videoResult) {
             free_sd_video_generation_result(videoResult);
         }
 
-        QMetaObject::invokeMethod(this, [this, targetDir, numFramesOut, effectiveFps]() {
+        if (numFramesOut == 0) {
+            generationError = formatActionableSdError(tr("Video generation failed"), takeLastSdError());
+        }
+
+        QMetaObject::invokeMethod(this, [this, targetDir, numFramesOut, effectiveFps, generationError]() {
             m_isBusy = false;
             emit busyChanged(false);
+
+            if (numFramesOut == 0) {
+                emit engineError(generationError.isEmpty()
+                                 ? tr("Video generation produced 0 frames.")
+                                 : generationError);
+                return;
+            }
 
             QVariantMap result;
             result[QStringLiteral("outputDir")] = targetDir;
@@ -473,8 +656,10 @@ void LocalSdEngine::runVideoGeneration(const QString &prompt, const QString &inp
             result[QStringLiteral("category")] = QStringLiteral("video");
 
             emit generationFinished(result);
-        });
+        }, Qt::QueuedConnection);
     });
+
+    trackWorkerFuture(this, future);
 }
 
 void LocalSdEngine::verifyConnection() {

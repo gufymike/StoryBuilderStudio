@@ -62,8 +62,6 @@ Item {
                 }
                 onClicked: splitRoot.promptPaneVisible = !splitRoot.promptPaneVisible
             }
-
-
         }
 
         // Split View
@@ -116,23 +114,15 @@ Item {
                     anchors.margins: 4
                     targetAssetType: splitRoot.targetAssetType
 
-                    onImageCandidatesReady: (candidateList) => {
-                        if (candidateList && candidateList.length > 0) {
-                            // ImageCandidateModal lives here in the workspace view hierarchy
-                            candidateModal.openWithCandidates(candidateList)
-                        }
-                    }
-
                     onAudioGenerated: (filePath) => {
-                        if (audioWorkspaceWidget && typeof audioWorkspaceWidget.loadTrack === "function") {
-                            audioWorkspaceWidget.loadTrack(filePath)
+                        if (typeof audioWorkspaceWidget !== "undefined" && audioWorkspaceWidget) {
+                            if (audioWorkspaceWidget.directoryModel && typeof audioWorkspaceWidget.directoryModel.refresh === "function") {
+                                audioWorkspaceWidget.directoryModel.refresh()
+                            }
+                            if (filePath && filePath.length > 0 && typeof audioWorkspaceWidget.loadTrack === "function") {
+                                audioWorkspaceWidget.loadTrack(filePath)
+                            }
                         }
-                    }
-
-                    onScriptGenerated: (scriptText, category) => {
-                        // if (editorPane && typeof editorPane.insertGeneratedContent === "function") {
-                        //     editorPane.insertGeneratedContent(scriptText)
-                        // }
                     }
                 }
             }
