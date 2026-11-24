@@ -186,28 +186,22 @@ static QQuickItem *findVisualItem(QQuickItem *root, const QString &objectName)
     }
     return nullptr;
 }
-
 void Test_SeriesLauncherModal::testDeleteSeriesConfirmationAndDiskRemoval()
 {
-    const QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    const QString projectsRoot = QDir(homePath).filePath(QStringLiteral("StoryBuilderStudioProjects"));
-    QVERIFY(QDir().mkpath(projectsRoot));
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
 
-    // Prefix with 000_qtest_ so it sorts at index 0 without touching existing user series
+    const QString projectsRoot       = tempDir.path();
     const QString targetSeriesPath   = QDir(projectsRoot).filePath(QStringLiteral("000_qtest_doomed_series"));
     const QString survivorSeriesPath = QDir(projectsRoot).filePath(QStringLiteral("001_qtest_keeper_series"));
     const QString tempIniPath        = QDir(projectsRoot).filePath(QStringLiteral("000_qtest_config.ini"));
 
-    QDir(targetSeriesPath).removeRecursively();
-    QDir(survivorSeriesPath).removeRecursively();
-    QFile::remove(tempIniPath);
-
     SeriesContainer seriesContainer;
+    seriesContainer.setCustomProjectsRoot(projectsRoot);
     QVERIFY(seriesContainer.createNewContainer(targetSeriesPath, QStringLiteral("Doomed Series"), QStringLiteral("Hook"), QStringLiteral("Desc")));
     QVERIFY(seriesContainer.createNewContainer(survivorSeriesPath, QStringLiteral("Keeper Series"), QStringLiteral("Hook"), QStringLiteral("Desc")));
     seriesContainer.refreshAvailableSeries();
-    const int initialCount = seriesContainer.availableSeries().size();
-    QVERIFY(initialCount >= 2);
+    QCOMPARE(seriesContainer.availableSeries().size(), 2);
 
     SettingsManager settingsManager(tempIniPath);
 
@@ -220,7 +214,7 @@ void Test_SeriesLauncherModal::testDeleteSeriesConfirmationAndDiskRemoval()
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
-    QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/qt/qml/StoryBuilderStudio/app/core/SeriesLauncherModal.qml")));
+    QQmlComponent component(&engine, m_componentUrl);
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
 
     QObject *dialogObj = component.create();
@@ -247,12 +241,11 @@ void Test_SeriesLauncherModal::testDeleteSeriesConfirmationAndDiskRemoval()
 
     QVERIFY2(!QDir(targetSeriesPath).exists(), "Confirmed series directory should be deleted from disk");
     QVERIFY2(QDir(survivorSeriesPath).exists(), "Unselected series directory must remain intact");
-    QCOMPARE(seriesContainer.availableSeries().size(), initialCount - 1);
+    QCOMPARE(seriesContainer.availableSeries().size(), 1);
 
     delete dialogObj;
-    QDir(survivorSeriesPath).removeRecursively();
-    QFile::remove(tempIniPath);
 }
+
 
 QTEST_MAIN(Test_SeriesLauncherModal)
 #include "test_SeriesLauncherModal.moc"

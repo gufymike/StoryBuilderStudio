@@ -125,7 +125,8 @@ public:
     Q_INVOKABLE QString getSubProjectTitle(int index) const;
     Q_INVOKABLE void refreshAvailableSeries();
     Q_INVOKABLE bool deleteSeriesDirectory(const QString &seriesPath);
-
+    Q_INVOKABLE void setCustomProjectsRoot(const QString &path);
+    QString projectsRootPath() const;
 signals:
     void nameChanged();
     void shortDescriptionChanged();
@@ -156,4 +157,5 @@ private:
     QStringList m_coCreators;
     QString m_email;
     QStringList m_cachedAvailableSeries;
+    QString m_customProjectsRoot;
 };

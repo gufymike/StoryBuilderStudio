@@ -16,6 +16,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSignalSpy>
+#include <QTemporaryDir>
+
 #include "app/core/seriescontainer.h"
 
 class Test_SeriesContainer : public QObject
@@ -54,7 +56,7 @@ void Test_SeriesContainer::initTestCase()
     QCoreApplication::setApplicationName(QStringLiteral("storyBuilderStudio"));
     QCoreApplication::setOrganizationName(QStringLiteral("5150wtmw"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("gufymike.com"));
-
+    QStandardPaths::setTestModeEnabled(true);
     // StandardLocations::TempLocation/<uuid>/
     QString baseTemp = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     QString sessionUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -68,6 +70,7 @@ void Test_SeriesContainer::cleanupTestCase()
     if (!m_testSessionDir.isEmpty() && QDir(m_testSessionDir).exists()) {
         QDir(m_testSessionDir).removeRecursively();
     }
+    QStandardPaths::setTestModeEnabled(false);
 }
 
 void Test_SeriesContainer::init()
@@ -267,7 +270,9 @@ void Test_SeriesContainer::testDeleteSeriesDirectoryAndSafetyGuards()
     QCOMPARE(errSpy.count(), 1);
 
     // Must refuse user home directory
-    QVERIFY(!container.deleteSeriesDirectory(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
+    const QString homeDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QVERIFY(!container.deleteSeriesDirectory(homeDir));
+    QVERIFY(!container.deleteSeriesDirectory(QDir(homeDir).filePath(QStringLiteral("StoryBuilderStudioProjects"))));
 
     // Must delete valid series and clear active rootDirectory
     QVERIFY(container.deleteSeriesDirectory(validSeries));

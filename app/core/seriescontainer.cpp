@@ -37,10 +37,28 @@ static QString normalizeLocalPath(const QString &rawPath)
     return QDir::toNativeSeparators(QDir::cleanPath(local));
 }
 
+void SeriesContainer::setCustomProjectsRoot(const QString &path)
+{
+    m_customProjectsRoot = normalizeLocalPath(path);
+    scanAvailableSeriesInternal();
+}
+
+QString SeriesContainer::projectsRootPath() const
+{
+    if (!m_customProjectsRoot.isEmpty()) {
+        return m_customProjectsRoot;
+    }
+    if (QStandardPaths::isTestModeEnabled()) {
+        const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+        return QDir(tempRoot).filePath(QStringLiteral("StoryBuilderStudioProjects_Test"));
+    }
+    const QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    return QDir(homePath).filePath(QStringLiteral("StoryBuilderStudioProjects"));
+}
+
 void SeriesContainer::scanAvailableSeriesInternal()
 {
-    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QDir projectsRoot(QDir(homePath).filePath(QStringLiteral("StoryBuilderStudioProjects")));
+    QDir projectsRoot(projectsRootPath());
 
     QStringList seriesDirs;
     if (projectsRoot.exists()) {
@@ -58,6 +76,7 @@ void SeriesContainer::scanAvailableSeriesInternal()
         emit availableSeriesChanged();
     }
 }
+
 void SeriesContainer::setName(const QString &val) {
     if (m_name != val) {
         m_name = val;
