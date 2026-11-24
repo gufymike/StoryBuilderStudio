@@ -421,6 +421,7 @@ Item {
 
                 // Response Output Well
                 Rectangle {
+                    id: responseWellRect
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     color: "#0B1B26"
@@ -430,6 +431,7 @@ Item {
                     clip: true
 
                     ScrollView {
+                        id: responseScrollView
                         anchors.fill: parent
                         clip: true
 
@@ -456,11 +458,34 @@ Item {
                                 responseDisplayArea.cursorPosition = responseDisplayArea.length
                             }
                         }
+                    }
 
-                        BusyIndicator {
+                    // Viewport-pinned busy overlay (sibling of ScrollView, never scrolls or clips at 0x0)
+                    Rectangle {
+                        id: responseBusyOverlay
+                        anchors.fill: parent
+                        z: 10
+                        visible: promptBuilderRoot.isGenerating
+                        color: "#8808121A"
+                        radius: 4
+
+                        ColumnLayout {
                             anchors.centerIn: parent
-                            running: promptBuilderRoot.isGenerating
-                            visible: promptBuilderRoot.isGenerating
+                            spacing: 8
+
+                            BusyIndicator {
+                                id: responseBusyIndicator
+                                running: responseBusyOverlay.visible
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+
+                            Text {
+                                text: qsTr("Generating...")
+                                color: "#00F0FF"
+                                font.pixelSize: 12
+                                font.bold: true
+                                Layout.alignment: Qt.AlignHCenter
+                            }
                         }
                     }
                 }
