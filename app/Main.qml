@@ -500,7 +500,7 @@ ApplicationWindow {
             }
 
             Text {
-                text: qsTr("Licensed under the GNU General Public License v3.0 (GPL-3.0-or-later).\nDeveloped by Mike Ramirez and Gemini.")
+                text: qsTr("Licensed under the MIT License (see LICENSE and THIRD-PARTY-NOTICES.txt).\nDeveloped by Mike Ramirez and Gemini.")
                 color: "#888888"
                 font.pixelSize: 11
                 wrapMode: Text.Wrap
