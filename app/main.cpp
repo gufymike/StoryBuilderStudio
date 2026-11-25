@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication::setApplicationName(QStringLiteral("storyBuilderStudio"));
     QGuiApplication::setApplicationDisplayName(QStringLiteral("Story Builder Studio"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("1.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("0.1"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("gufymike.com"));
     QCoreApplication::setOrganizationName(QStringLiteral("5150wtmw"));
     AppLogger::initLogging();
