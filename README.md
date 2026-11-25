@@ -216,7 +216,6 @@ If you are running directly from a build directory without embedded Qt libraries
 # Or directly (not required if built against system Qt 6):
 LD_LIBRARY_PATH=/opt/Qt/6.11.0/gcc_64/lib ./appStoryBuilderStudio
   ```
-  Make executable with `chmod +x run.sh`. *(Not required if built against system Qt 6.)*
 
 ### 🍎 macOS
 ```bash
@@ -294,7 +293,7 @@ Place audio synthesis and sound effect weights inside `audio/` (or `audio/sfx/`)
 
 ### E. Speech Pipeline (Kokoro TTS via Sherpa-ONNX)
 Place extracted model assets inside `audio/speech/Kokoro/`:
-* **Repository:** [csukuangfj/kokoro-en-v0_19](https://huggingface.co/csukuangfj/kokoro-en-v0_19/tree/main)
+* **Repositories:** [csukuangfj/kokoro-en-v0_19](https://huggingface.co/csukuangfj/kokoro-en-v0_19/tree/main) (11 voices) or [csukuangfj/kokoro-v1_0](https://huggingface.co/csukuangfj/kokoro-v1_0/tree/main) (28 English / 54 total voices; auto-detected at runtime)
 * **Required Files:** `model.onnx`, `voices.bin`, `tokens.txt`, `lexicon.txt` (or `lexicon-us-en.txt`), and `espeak-ng-data/`
 
 ### F. Script & Narrative Pipeline (Qwen 3 / ChatML)
@@ -308,7 +307,7 @@ Place the language model and tokenizer inside `text/`:
 
 1. **Verify Plugins & Manifests:** Open **Help → About** to confirm loaded vs. missing local plugins, then check the **Model Settings / Manifest** tab to ensure required `.gguf`, `.onnx`, and `.safetensors` weights are highlighted green.
 2. **Audio Waveform Initialization:** In the Audio workspace, select a track or synthesize a sentence to confirm `QAudioDecoder` loads and renders waveform peaks without runtime errors.
-3. **Audit Trail Verification:** Confirm `prompt_history.json` and `think_history.json` are created in active project folders to log prompt dispatches and reasoning streams. These are not written to till after the response is displayed.
+3. **Audit Trail & History Verification:** Confirm `audit_trail.json`, `prompt_history.json`, and `think_history.json` are created in active project folders once a generation completes. Every modality (`script`, `image`, `audio`, `video`) logs its prompt, active `provider`, outcome `status`, and bare `saved_file` name (when saved to disk), and populates the per-tab **History** picker.
 
 ## 10. License & Third-Party Notices
 

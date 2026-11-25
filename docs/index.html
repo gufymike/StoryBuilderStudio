@@ -41,7 +41,7 @@
             ::-webkit-scrollbar {
                 width: 7px;
                 height: 7px;
-            }<p>Story Builder Studio Technical Documentation &copy; 2026 &middot; Released under the MIT License.</p>
+            }
             ::-webkit-scrollbar-track {
                 background: #08131B;
             }
@@ -215,13 +215,13 @@
                 </div>
                 <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Model Directory Topologies</h2>
                 <p class="text-sm text-studio-muted mb-3">
-                    When using optional local AI plugins, Story Builder Studio looks for models inside a standardized base directory. During setup, the **First Run Wizard** lets you choose a custom models folder (for example, on a secondary drive) or use the platform defaults:
-                </p>
-                <ul class="text-xs text-studio-muted font-mono space-y-1 mb-4 pl-2">
-                    <li>• <span class="text-white">Windows:</span> <code class="text-studio-accent">%APPDATA%\StoryBuilderStudio\</code></li>
-                    <li>• <span class="text-white">Linux:</span> <code class="text-studio-accent">~/.local/share/StoryBuilderStudio/</code></li>
-                    <li>• <span class="text-white">macOS:</span> <code class="text-studio-accent">~/Library/Application Support/StoryBuilderStudio/</code></li>
-                </ul>
+                  When using optional local AI plugins, Story Builder Studio looks for models inside a standardized base directory. During setup, the <strong class="text-white">First Run Wizard</strong> lets you choose a custom models folder (for example, on a secondary drive) or use the platform defaults:
+              </p>
+              <ul class="text-xs text-studio-muted font-mono space-y-1 mb-4 pl-2">
+                  <li>• <span class="text-white">Windows:</span> <code class="text-studio-accent">%APPDATA%\5150wtmw\StoryBuilderStudio\</code></li>
+                  <li>• <span class="text-white">Linux:</span> <code class="text-studio-accent">~/.local/share/StoryBuilderStudio/</code></li>
+                  <li>• <span class="text-white">macOS:</span> <code class="text-studio-accent">~/Library/Application Support/StoryBuilderStudio/</code></li>
+              </ul>
 
                 <div class="code-block rounded-lg p-4 font-mono text-xs text-neutral-300 mb-6 overflow-x-auto relative">
                     <button onclick="copyCode(this)" class="absolute right-3 top-3 text-[11px] bg-studio-surface hover:bg-studio-hover border border-studio-border px-2 py-1 rounded text-studio-muted hover:text-white transition">
@@ -265,19 +265,43 @@
                 </div>
                 <h2 class="text-2xl font-bold text-white tracking-tight mb-3">Unified Audit Ledger &amp; UUIDs</h2>
                 <p class="text-sm text-studio-muted mb-4">
-                    To maintain strict record keeping across long-form projects, each generation produces a canonical ISO-8601 UTC timestamp (e.g., <code class="text-studio-accent">2026-11-01T17:29:44.123Z</code>). This string acts as a shared UUID linking prompt inputs, generated assets, and intermediate reasoning tokens.
+                    To maintain strict record keeping across long-form projects, every generation across <code class="text-white">script</code>, <code class="text-white">image</code>, <code class="text-white">audio</code>, and <code class="text-white">video</code> produces a canonical ISO-8601 UTC timestamp (e.g., <code class="text-studio-accent">2026-11-24T23:10:00.000Z</code>). This string acts as a shared UUID linking prompt inputs, provider metadata, saved asset filenames, and intermediate reasoning tokens.
                 </p>
+
+                <div class="bg-studio-panel border border-studio-border p-4 rounded-lg text-xs font-mono mb-4">
+                    <div class="text-white font-bold mb-2 flex items-center justify-between">
+                        <span>audit_trail.json</span>
+                        <span class="text-[10px] text-studio-accent">Master Multi-Modality Ledger</span>
+                    </div>
+                    <p class="text-studio-muted font-sans mb-3 text-[11px]">
+                        Logs every dispatched prompt across all workspace tabs, recording the active driver (<code class="text-neutral-300">provider</code>), portable bare output filename (<code class="text-neutral-300">saved_file</code>), and lifecycle outcome (<code class="text-neutral-300">saved</code>, <code class="text-neutral-300">completed</code>, or <code class="text-neutral-300">discarded</code>).
+                    </p>
+                    <div class="code-block p-2.5 rounded text-[11px] text-neutral-300 overflow-x-auto">
+{<br>
+&nbsp;&nbsp;"project_name": "Episode 1",<br>
+&nbsp;&nbsp;"category": "image",<br>
+&nbsp;&nbsp;"provider": "sd_image",<br>
+&nbsp;&nbsp;"sent_timestamp": "2026-11-24T23:10:00.000Z",<br>
+&nbsp;&nbsp;"received_timestamp": "2026-11-24T23:10:04.210Z",<br>
+&nbsp;&nbsp;"prompt_text": "INT. CONTROL ROOM - NIGHT",<br>
+&nbsp;&nbsp;"selected_options": ["Anamorphic", "Neon Glow"],<br>
+&nbsp;&nbsp;"saved_file": "control_room_pick.png",<br>
+&nbsp;&nbsp;"status": "saved",<br>
+&nbsp;&nbsp;"is_think_text": false<br>
+}
+                    </div>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
                     <div class="bg-studio-panel border border-studio-border p-4 rounded-lg">
                         <div class="text-white font-bold mb-2 flex items-center justify-between">
                             <span>prompt_history.json</span>
-                            <span class="text-[10px] text-studio-accent">User Payload</span>
+                            <span class="text-[10px] text-studio-accent">Per-Modality History</span>
                         </div>
-                        <p class="text-studio-muted font-sans mb-3 text-[11px]">Stores dispatched prompts, target modalities, and the linked timestamp.</p>
+                        <p class="text-studio-muted font-sans mb-3 text-[11px]">Indexes dispatched prompts by <code class="text-neutral-300">targetAssetType</code> (<code class="text-neutral-300">script</code>, <code class="text-neutral-300">image</code>, <code class="text-neutral-300">audio</code>, <code class="text-neutral-300">video</code>) for quick recall in the composer's <strong>History</strong> popup.</p>
                         <div class="code-block p-2 rounded text-[11px] text-neutral-300">
 {<br>
-&nbsp;&nbsp;"timestamp": "2026-11-01T17:29:44.123Z",<br>
+&nbsp;&nbsp;"timestamp": "2026-11-24T23:10:00.000Z",<br>
 &nbsp;&nbsp;"category": "script",<br>
 &nbsp;&nbsp;"promptText": "INT. CONTROL ROOM - NIGHT"<br>
 }
@@ -292,7 +316,7 @@
                         <p class="text-studio-muted font-sans mb-3 text-[11px]">Captures reasoning tags (&lt;think&gt;) isolated from the clean response.</p>
                         <div class="code-block p-2 rounded text-[11px] text-neutral-300">
 {<br>
-&nbsp;&nbsp;"timestamp": "2026-11-01T17:29:44.123Z",<br>
+&nbsp;&nbsp;"timestamp": "2026-11-24T23:10:00.000Z",<br>
 &nbsp;&nbsp;"category": "script",<br>
 &nbsp;&nbsp;"thinkText": "Need suspenseful dialogue pacing..."<br>
 }
@@ -331,6 +355,13 @@
                         <div>
                             <strong class="text-white block mb-0.5">Safe Dispatch Preview Modal:</strong>
                             <p class="text-studio-muted leading-relaxed">Before invocation, the estimator displays projected runtime, memory footprint, and token counts so you can confirm or adjust settings before dispatching.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="w-6 h-6 rounded bg-studio-surface border border-studio-border flex items-center justify-center text-studio-accent font-bold shrink-0 mt-0.5">4</span>
+                        <div>
+                            <strong class="text-white block mb-0.5">Per-Modality Prompt History (📜 History):</strong>
+                            <p class="text-studio-muted leading-relaxed">Click <strong>History</strong> in the Script, Image, Audio, or Video tab to browse prior prompts filtered to that workspace modality—complete with saved asset filename badges—and click any entry to reload it into the prompt box.</p>
                         </div>
                     </div>
                 </div>
@@ -389,7 +420,7 @@
                         <ul class="text-[11px] text-neutral-400 space-y-1 font-mono">
                             <li>• Latent Steps: 4 recommended (Schnell)</li>
                             <li>• CFG Scale: 1.0 (Schnell guidance)</li>
-                            <li>• Output: 4 candidate thumbnails in Gallery</li>
+                            <li>• Selection: Single best pick by default (Ctrl+Click for multi-save)</li>
                         </ul>
                     </div>
 

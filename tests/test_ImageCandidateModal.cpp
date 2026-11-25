@@ -24,6 +24,7 @@ private slots:
     void testDefaultEmptyState();
     void testOpenWithCandidatesAndSelection();
     void testDiscardAllSignal();
+    void testSinglePickDefaultAndCtrlMultiSelect();
 
 private:
     QString m_testSessionDir;
@@ -158,6 +159,69 @@ void Test_ImageCandidateModal::testDiscardAllSignal()
     QCoreApplication::processEvents();
 
     QCOMPARE(discardSpy.count(), 1);
+}
+
+void Test_ImageCandidateModal::testSinglePickDefaultAndCtrlMultiSelect()
+{
+    TestHarness harness;
+    QVERIFY2(harness.init(m_testSessionDir), "Failed to load ImageCandidateModal harness");
+
+    QObject *modal = harness.modal;
+    QVERIFY(modal != nullptr);
+
+    QSignalSpy singleSpy(modal, SIGNAL(imageSelected(QString)));
+    QSignalSpy multiSpy(modal, SIGNAL(imagesSelected(QVariant)));
+
+    const QString pngA = QStringLiteral("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+    const QString pngB = QStringLiteral("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+    const QString pngC = QStringLiteral("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+    QVariantList candidates = { pngA, pngB, pngC };
+
+    QMetaObject::invokeMethod(modal, "openWithCandidates",
+                              Qt::DirectConnection,
+                              Q_ARG(QVariant, QVariant::fromValue(candidates)),
+                              Q_ARG(QVariant, QVariant(-1)));
+    QCoreApplication::processEvents();
+
+    // 1. Defaults to single best pick (index 0)
+    QCOMPARE(modal->property("selectedIndices").toList(), QVariantList{0});
+
+    // 2. Standard click switches selection to a single candidate
+    QMetaObject::invokeMethod(modal, "selectCandidate",
+                              Qt::DirectConnection,
+                              Q_ARG(QVariant, QVariant(2)),
+                              Q_ARG(QVariant, QVariant(int(Qt::NoModifier))));
+    QCOMPARE(modal->property("selectedIndices").toList(), QVariantList{2});
+
+    // 3. Ctrl+Click adds a second candidate in sorted index order
+    QMetaObject::invokeMethod(modal, "selectCandidate",
+                              Qt::DirectConnection,
+                              Q_ARG(QVariant, QVariant(1)),
+                              Q_ARG(QVariant, QVariant(int(Qt::ControlModifier))));
+    QCOMPARE(modal->property("selectedIndices").toList(), (QVariantList{1, 2}));
+
+    // 4. Ctrl+Click removes an already selected candidate
+    QMetaObject::invokeMethod(modal, "selectCandidate",
+                              Qt::DirectConnection,
+                              Q_ARG(QVariant, QVariant(2)),
+                              Q_ARG(QVariant, QVariant(int(Qt::ControlModifier))));
+    QCOMPARE(modal->property("selectedIndices").toList(), QVariantList{1});
+
+    // 5. Ctrl+Click keeps at least one candidate selected
+    QMetaObject::invokeMethod(modal, "selectCandidate",
+                              Qt::DirectConnection,
+                              Q_ARG(QVariant, QVariant(1)),
+                              Q_ARG(QVariant, QVariant(int(Qt::ControlModifier))));
+    QCOMPARE(modal->property("selectedIndices").toList(), QVariantList{1});
+
+    // 6. Committing emits the chosen candidate and closes the popup
+    QMetaObject::invokeMethod(modal, "commitSelectedCandidates", Qt::DirectConnection);
+    QCoreApplication::processEvents();
+
+    QCOMPARE(singleSpy.count(), 1);
+    QCOMPARE(singleSpy.takeFirst().at(0).toString(), pngB);
+    QCOMPARE(multiSpy.count(), 1);
+    QCOMPARE(modal->property("opened").toBool(), false);
 }
 
 QTEST_MAIN(Test_ImageCandidateModal)

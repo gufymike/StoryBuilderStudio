@@ -40,6 +40,30 @@ bool AuditTrailStore::isValidDirectoryPath(const QString &path) const
     return true;
 }
 
+QString AuditTrailStore::normalizeSavedFileNames(const QString &rawFileOrList)
+{
+    if (rawFileOrList.trimmed().isEmpty()) {
+        return QString();
+    }
+
+    const QStringList parts = rawFileOrList.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    QStringList cleanNames;
+    cleanNames.reserve(parts.size());
+
+    for (const QString &part : parts) {
+        QString trimmed = part.trimmed();
+        if (trimmed.startsWith(QStringLiteral("file://"), Qt::CaseInsensitive)) {
+            trimmed = QUrl(trimmed).toLocalFile();
+        }
+        const QString baseName = QFileInfo(trimmed).fileName();
+        if (!baseName.isEmpty() && !cleanNames.contains(baseName)) {
+            cleanNames.append(baseName);
+        }
+    }
+
+    return cleanNames.join(QStringLiteral(", "));
+}
+
 void AuditTrailStore::setStorageDirectory(const QString &directoryPath)
 {
     QString cleanPath = QDir::toNativeSeparators(directoryPath.trimmed());
@@ -64,7 +88,6 @@ QString AuditTrailStore::getAuditFilePath() const
     QDir dir(m_storageDirectory);
     return dir.absoluteFilePath(QStringLiteral("audit_trail.json"));
 }
-
 
 int AuditTrailStore::transactionCount() const
 {
@@ -120,7 +143,10 @@ void AuditTrailStore::recordTransaction(const QString &projectName,
                                         const QString &sentTimestamp,
                                         const QString &receivedTimestamp,
                                         const QStringList &selectedOptions,
-                                        const bool &isThinkText)
+                                        const bool &isThinkText,
+                                        const QString &savedFile,
+                                        const QString &status,
+                                        const QString &provider)
 {
     QString filePath = getAuditFilePath();
     if (filePath.isEmpty()) {
@@ -128,7 +154,6 @@ void AuditTrailStore::recordTransaction(const QString &projectName,
         return;
     }
 
-    // Security check: ensure target directory exists before file creation
     QFileInfo fileInfo(filePath);
     QDir parentDir = fileInfo.dir();
     if (!parentDir.exists()) {
@@ -146,14 +171,25 @@ void AuditTrailStore::recordTransaction(const QString &projectName,
         file.close();
     }
 
+    const QString cleanSavedFile = normalizeSavedFileNames(savedFile);
+    QString resolvedStatus = status.trimmed();
+    if (resolvedStatus.isEmpty()) {
+        resolvedStatus = cleanSavedFile.isEmpty() ? QStringLiteral("completed") : QStringLiteral("saved");
+    } else if (!cleanSavedFile.isEmpty() && resolvedStatus == QStringLiteral("completed")) {
+        resolvedStatus = QStringLiteral("saved");
+    }
+
     QJsonObject transaction;
     transaction[QStringLiteral("project_name")] = projectName;
     transaction[QStringLiteral("category")] = category;
+    transaction[QStringLiteral("provider")] = provider;
     transaction[QStringLiteral("sent_timestamp")] = sentTimestamp;
     transaction[QStringLiteral("received_timestamp")] = receivedTimestamp;
     transaction[QStringLiteral("prompt_text")] = promptText;
     transaction[QStringLiteral("selected_options")] = QJsonArray::fromStringList(selectedOptions);
     transaction[QStringLiteral("response_text")] = responseText;
+    transaction[QStringLiteral("saved_file")] = cleanSavedFile;
+    transaction[QStringLiteral("status")] = resolvedStatus;
     transaction[QStringLiteral("is_think_text")] = isThinkText;
 
     auditArray.append(transaction);
@@ -171,3 +207,81 @@ void AuditTrailStore::recordTransaction(const QString &projectName,
     }
 }
 
+bool AuditTrailStore::updateTransactionFile(const QString &sentTimestamp,
+                                            const QString &savedFile,
+                                            const QString &status,
+                                            const QString &category)
+{
+    QString filePath = getAuditFilePath();
+    if (filePath.isEmpty() || !QFile::exists(filePath)) {
+        return false;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return false;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isArray()) {
+        return false;
+    }
+
+    QJsonArray auditArray = doc.array();
+    int targetIndex = -1;
+
+    // 1. Exact match by sent_timestamp UUID (non-think entry)
+    if (!sentTimestamp.trimmed().isEmpty()) {
+        for (int i = auditArray.size() - 1; i >= 0; --i) {
+            const QJsonObject obj = auditArray.at(i).toObject();
+            if (!obj.value(QStringLiteral("is_think_text")).toBool() &&
+                obj.value(QStringLiteral("sent_timestamp")).toString() == sentTimestamp) {
+                targetIndex = i;
+                break;
+            }
+        }
+    }
+
+    // 2. Fallback: latest non-think entry in the specified modality category
+    if (targetIndex < 0 && !category.trimmed().isEmpty()) {
+        for (int i = auditArray.size() - 1; i >= 0; --i) {
+            const QJsonObject obj = auditArray.at(i).toObject();
+            if (!obj.value(QStringLiteral("is_think_text")).toBool() &&
+                obj.value(QStringLiteral("category")).toString().compare(category, Qt::CaseInsensitive) == 0) {
+                targetIndex = i;
+                break;
+            }
+        }
+    }
+
+    if (targetIndex < 0) {
+        return false;
+    }
+
+    QJsonObject targetObj = auditArray.at(targetIndex).toObject();
+    const QString cleanSavedFile = normalizeSavedFileNames(savedFile);
+    const QString resolvedStatus = status.trimmed().isEmpty()
+                                       ? (cleanSavedFile.isEmpty() ? QStringLiteral("completed") : QStringLiteral("saved"))
+                                       : status.trimmed();
+
+    targetObj[QStringLiteral("saved_file")] = cleanSavedFile;
+    targetObj[QStringLiteral("status")] = resolvedStatus;
+    auditArray[targetIndex] = targetObj;
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        qWarning() << "[AuditTrailStore] Failed to update audit file:" << file.errorString();
+        return false;
+    }
+
+    QJsonDocument updatedDoc(auditArray);
+    file.write(updatedDoc.toJson(QJsonDocument::Indented));
+    file.flush();
+    file.close();
+
+    emit transactionUpdated(targetObj.value(QStringLiteral("sent_timestamp")).toString(),
+                            cleanSavedFile,
+                            resolvedStatus);
+    return true;
+}

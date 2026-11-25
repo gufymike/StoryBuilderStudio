@@ -6,6 +6,7 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QQuickItem>
+#include <QQmlContext>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QUuid>
@@ -13,8 +14,10 @@
 #include <QUrl>
 #include <QObject>
 #include <QVariantMap>
+#include <QJSValue>
 
 #include "ui_constants.h"
+#include "audittrailstore.h"
 
 class MockDriver : public QObject
 {
@@ -78,6 +81,7 @@ private slots:
     void testPromptHistoryButtonExists();
     void testPromptHistoryPopupOpens();
     void testRemoteDriverResolvesEstimatorToRemote();
+    void testHistoryPopupFiltersAllModalitiesAndInsertsPrompt();
 
 private:
     QString m_testSessionDir;
@@ -87,6 +91,7 @@ private:
         QQuickWindow *window = nullptr;
         QObject *builder = nullptr;
         MockDriver mockDriver;
+        AuditTrailStore auditStore;
 
         bool init(const QString &sessionDir) {
             Q_UNUSED(sessionDir);
@@ -94,6 +99,16 @@ private:
             engine.addImportPath(QStringLiteral(CMAKE_BINARY_DIR));
             engine.addImportPath(QStringLiteral(CMAKE_SOURCE_DIR) + QStringLiteral("/app/engine"));
             engine.addImportPath(QStringLiteral(CMAKE_SOURCE_DIR) + QStringLiteral("/app/promptbuilder"));
+
+            auditStore.setStorageDirectory(sessionDir);
+            auditStore.clear();
+            engine.rootContext()->setContextProperty(QStringLiteral("auditTrailStore"), &auditStore);
+
+            QVariantMap mockProjectMgr;
+            mockProjectMgr[QStringLiteral("projectName")] = QStringLiteral("TestEpisode");
+            mockProjectMgr[QStringLiteral("isProjectOpen")] = true;
+            mockProjectMgr[QStringLiteral("currentProjectPath")] = sessionDir;
+            engine.rootContext()->setContextProperty(QStringLiteral("projectManager"), mockProjectMgr);
 
             const QByteArray hostQml = QByteArrayLiteral(
                 "import QtQuick\n"
@@ -470,6 +485,110 @@ void Test_PromptBuilder::testRemoteDriverResolvesEstimatorToRemote()
 
     QCOMPARE(builder->property("isLocalDriver").toBool(), false);
     QCOMPARE(builder->property("resolvedEstimatorEngine").toString(), QStringLiteral("remote"));
+}
+
+static QQuickItem *findVisualChild(QQuickItem *parent, const QString &name)
+{
+    if (!parent) return nullptr;
+    if (parent->objectName() == name) return parent;
+    const auto children = parent->childItems();
+    for (QQuickItem *child : children) {
+        if (QQuickItem *found = findVisualChild(child, name)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+void Test_PromptBuilder::testHistoryPopupFiltersAllModalitiesAndInsertsPrompt()
+{
+    TestHarness harness;
+    QVERIFY2(harness.init(m_testSessionDir), "Failed to load PromptBuilder harness.");
+
+    QObject *builder = harness.builder;
+    QObject *historyBtn = builder->findChild<QObject*>(QStringLiteral("promptHistoryBtn"));
+    QObject *historyPopup = builder->findChild<QObject*>(QStringLiteral("historyPopup"));
+    QObject *promptTextArea = builder->findChild<QObject*>(UI::PromptBuilder::PromptTextArea);
+    QVERIFY(historyBtn && historyPopup && promptTextArea);
+
+    struct ModalityCase {
+        QString assetType;
+        QString prompt;
+        QString savedFile;
+        QString provider;
+    };
+
+    const QList<ModalityCase> cases = {
+        { QStringLiteral("script"), QStringLiteral("Draft opening scene in rain"), QStringLiteral("scene_01.md"), QStringLiteral("gemini_bridge") },
+        { QStringLiteral("image"),  QStringLiteral("Neon street reflection"),      QStringLiteral("shot_01.png"), QStringLiteral("sd_image") },
+        { QStringLiteral("audio"),  QStringLiteral("Distant thunder rumble"),      QStringLiteral("sfx_01.wav"),  QStringLiteral("audio_cpp") },
+        { QStringLiteral("video"),  QStringLiteral("Slow crane descent"),          QStringLiteral("clip_01.mp4"), QStringLiteral("sd_video") }
+    };
+
+    for (const auto &c : cases) {
+        harness.auditStore.recordTransaction(
+            QStringLiteral("TestEpisode"),
+            c.assetType,
+            c.prompt,
+            QStringLiteral("Generated output"),
+            QStringLiteral("2026-11-24T23:10:00.000Z"),
+            QStringLiteral("2026-11-24T23:10:04.000Z"),
+            QStringList(),
+            false,
+            c.savedFile,
+            QStringLiteral("saved"),
+            c.provider
+            );
+    }
+
+    // Add a reasoning trace to confirm it is excluded from the prompt picker popup
+    harness.auditStore.recordTransaction(
+        QStringLiteral("TestEpisode"),
+        QStringLiteral("video"),
+        QStringLiteral("Slow crane descent"),
+        QStringLiteral("Internal <think> trace"),
+        QStringLiteral("2026-11-24T23:10:00.000Z"),
+        QStringLiteral("2026-11-24T23:10:04.000Z"),
+        QStringList(),
+        true
+        );
+
+    for (const auto &c : cases) {
+        builder->setProperty("targetAssetType", c.assetType);
+        promptTextArea->setProperty("text", QString());
+        QCoreApplication::processEvents();
+
+        QMetaObject::invokeMethod(historyBtn, "clicked");
+        QTRY_COMPARE_WITH_TIMEOUT(historyPopup->property("opened").toBool(), true, 1000);
+
+        QQuickItem *popupContent = historyPopup->property("contentItem").value<QQuickItem*>();
+        QVERIFY2(popupContent != nullptr, "historyPopup has no contentItem.");
+
+        QQuickItem *listView = findVisualChild(popupContent, QStringLiteral("historyListView"));
+        QVERIFY2(listView != nullptr, "UI Component Missing: 'historyListView' not found in historyPopup.");
+
+        QObject *listModel = listView->property("model").value<QObject*>();
+        QVERIFY(listModel != nullptr);
+        QCOMPARE(listModel->property("count").toInt(), 1);
+
+        QJSValue entryJs;
+        QVERIFY(QMetaObject::invokeMethod(listModel, "get", Qt::DirectConnection,
+                                          Q_RETURN_ARG(QJSValue, entryJs),
+                                          Q_ARG(int, 0)));
+        QVERIFY(entryJs.isObject());
+
+        const QString actualPrompt = entryJs.property(QStringLiteral("promptText")).toString();
+        const QString actualSavedFile = entryJs.property(QStringLiteral("savedFile")).toString();
+
+        QCOMPARE(actualPrompt, c.prompt);
+        QCOMPARE(actualSavedFile, c.savedFile);
+
+        // Simulate clicking the row to insert the prompt and close the popup
+        promptTextArea->setProperty("text", actualPrompt);
+        QMetaObject::invokeMethod(historyPopup, "close");
+        QCoreApplication::processEvents();
+        QCOMPARE(promptTextArea->property("text").toString(), c.prompt);
+    }
 }
 
 QTEST_MAIN(Test_PromptBuilder)

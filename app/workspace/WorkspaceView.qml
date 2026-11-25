@@ -23,12 +23,34 @@ Item {
     property alias mainEditorPane: mainEditorPane
     property alias tabIndex: workspaceTabBar.currentIndex
     property alias candidateSelector: candidateModal
+    property string lastImageSentTimestamp: ""
+    property var pendingSavedImageFiles: []
 
     signal newScriptTriggered()
     signal openScriptTriggered()
     signal saveScriptTriggered()
     signal closeScriptTriggered()
     signal recentDocumentTriggered(string filePath)
+
+    function extractFileName(pathOrUrl) {
+        if (!pathOrUrl || pathOrUrl.length === 0) return ""
+        let normalized = String(pathOrUrl).replace(/\\/g, "/")
+        let idx = normalized.lastIndexOf("/")
+        return idx >= 0 ? normalized.substring(idx + 1) : normalized
+    }
+
+    function snapshotImageModelFiles() {
+        let names = []
+        const model = imageGalleryWidget.directoryModel
+        if (!model || typeof model.rowCount !== "function") return names
+        const count = model.rowCount()
+        for (let i = 0; i < count; ++i) {
+            let idx = model.index(i, 0)
+            let val = model.data(idx, Qt.DisplayRole)
+            if (val) names.push(String(val))
+        }
+        return names
+    }
 
     function refreshAudioWorkspace(filePath) {
         if (typeof projectManager !== "undefined" && projectManager !== null && projectManager.isProjectOpen) {
@@ -253,7 +275,7 @@ Item {
                         color: workspaceRoot.isAudioReady ? "#00F0FF" : "#FF4444"
                     }
                     Text {
-                        text: qsTr("🎵 Audio")
+                        text: qsTr("🔊 Audio")
                         color: "#FFFFFF"
                         style: Text.Outline
                         styleColor: "#000000"
@@ -283,7 +305,7 @@ Item {
                         color: workspaceRoot.isVideoReady ? "#00F0FF" : "#FF4444"
                     }
                     Text {
-                        text: qsTr("🎥 Video")
+                        text: qsTr("🎞️ Video")
                         color: "#FFFFFF"
                         style: Text.Outline
                         styleColor: "#000000"
@@ -437,17 +459,59 @@ Item {
 
         onImageSelected: (base64Data) => {
             if (typeof projectManager !== "undefined" && projectManager !== null && projectManager.isProjectOpen) {
-                let success = projectManager.saveCandidateImage(base64Data)
-                if (success) {
+                let beforeFiles = workspaceRoot.snapshotImageModelFiles()
+                let result = projectManager.saveCandidateImage(base64Data)
+                if (result) {
                     imageGalleryWidget.updateProjectPath(projectManager.currentProjectPath)
+
+                    let savedName = (typeof result === "string" && result.length > 0)
+                                    ? workspaceRoot.extractFileName(result)
+                                    : ""
+                    if (savedName.length === 0) {
+                        let afterFiles = workspaceRoot.snapshotImageModelFiles()
+                        for (let i = 0; i < afterFiles.length; ++i) {
+                            if (beforeFiles.indexOf(afterFiles[i]) < 0) {
+                                savedName = workspaceRoot.extractFileName(afterFiles[i])
+                                break
+                            }
+                        }
+                    }
+
+                    if (savedName.length > 0 && workspaceRoot.pendingSavedImageFiles.indexOf(savedName) < 0) {
+                        let nextFiles = workspaceRoot.pendingSavedImageFiles.slice()
+                        nextFiles.push(savedName)
+                        workspaceRoot.pendingSavedImageFiles = nextFiles
+                    }
+
+                    if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null && workspaceRoot.pendingSavedImageFiles.length > 0) {
+                        auditTrailStore.updateTransactionFile(
+                            workspaceRoot.lastImageSentTimestamp,
+                            workspaceRoot.pendingSavedImageFiles.join(", "),
+                            "saved",
+                            "image"
+                        )
+                    }
+
                     if (imageWorkspace.promptBuilder) {
-                        imageWorkspace.promptBuilder.appendResponseText("Image saved successfully to project assets.")
+                        imageWorkspace.promptBuilder.appendResponseText(
+                            savedName.length > 0
+                                ? qsTr("Image saved to project assets: %1").arg(savedName)
+                                : qsTr("Image saved successfully to project assets.")
+                        )
                     }
                 }
             }
         }
 
         onAllDiscarded: {
+            if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null) {
+                auditTrailStore.updateTransactionFile(
+                    workspaceRoot.lastImageSentTimestamp,
+                    "",
+                    "discarded",
+                    "image"
+                )
+            }
             if (imageWorkspace.promptBuilder) {
                 imageWorkspace.promptBuilder.appendResponseText("Image generation candidates discarded by user.")
             }
@@ -460,6 +524,8 @@ Item {
         ignoreUnknownSignals: true
         function onGenerationFinished(payload) {
             if (payload && payload.candidates && payload.candidates.length > 0) {
+                workspaceRoot.pendingSavedImageFiles = []
+                workspaceRoot.lastImageSentTimestamp = payload.sentTimestamp || ""
                 candidateModal.openWithCandidates(payload.candidates)
             }
         }
@@ -472,6 +538,14 @@ Item {
         function onGenerationFinished(payload) {
             if (!payload) return
             workspaceRoot.refreshAudioWorkspace(payload.filePath || "")
+            if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null && payload.filePath && payload.filePath.length > 0) {
+                auditTrailStore.updateTransactionFile(
+                    payload.sentTimestamp || "",
+                    payload.filePath,
+                    "saved",
+                    "audio"
+                )
+            }
         }
     }
 
@@ -507,6 +581,14 @@ Item {
 
             if (payload.filePath && payload.filePath.length > 0) {
                 videoWorkspaceWidget.previewVideoFile(payload.filePath)
+                if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null) {
+                    auditTrailStore.updateTransactionFile(
+                        payload.sentTimestamp || "",
+                        payload.filePath,
+                        "saved",
+                        "video"
+                    )
+                }
                 if (videoWorkspace.promptBuilder) {
                     videoWorkspace.promptBuilder.appendResponseText(
                         qsTr("Video saved and loaded: %1").arg(payload.filePath)

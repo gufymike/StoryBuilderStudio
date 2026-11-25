@@ -189,14 +189,17 @@ Item {
     function appendResponseText(text) {
         isGenerating = false
         responseDisplayArea.appendIncomingText(text)
-        recordAuditTransaction(targetAssetType, text, false)
     }
 
-    function recordAuditTransaction(assetType, payloadText, isThinkText) {
+    function recordAuditTransaction(assetType, payloadText, isThinkText, savedFile, txStatus) {
         if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null &&
             typeof projectManager !== "undefined" && projectManager !== null) {
 
             let receivedTimestamp = new Date().toISOString()
+            let driverName = activeDriver
+                             ? (activeDriver.displayName || activeDriver.driverId || "")
+                             : ""
+
             auditTrailStore.recordTransaction(
                 projectManager.projectName,
                 assetType,
@@ -205,7 +208,10 @@ Item {
                 lastSentTimestamp,
                 receivedTimestamp,
                 selectedOptions,
-                Boolean(isThinkText)
+                Boolean(isThinkText),
+                savedFile || "",
+                txStatus || "completed",
+                driverName
             )
         }
     }
@@ -639,11 +645,45 @@ Item {
                         }
                         onClicked: {
                             historyListModel.clear()
-                            if (typeof promptHistoryStore !== "undefined") {
+                            const wanted = promptBuilderRoot.targetAssetType
+
+                            function matchesAssetType(cat) {
+                                if (!wanted || wanted.length === 0) return true
+                                if (cat === wanted) return true
+                                if (wanted === "script" && cat === "text") return true
+                                if (wanted === "audio" && cat === "speech") return true
+                                return false
+                            }
+
+                            if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null) {
+                                let txs = auditTrailStore.getTransactions()
+                                for (let i = txs.length - 1; i >= 0; --i) {
+                                    let tx = txs[i]
+                                    if (tx["is_think_text"]) continue
+                                    let cat = String(tx["category"] || "")
+                                    if (matchesAssetType(cat)) {
+                                        historyListModel.append({
+                                            "timestamp": String(tx["sent_timestamp"] || ""),
+                                            "category": cat,
+                                            "promptText": String(tx["prompt_text"] || ""),
+                                            "savedFile": String(tx["saved_file"] || ""),
+                                            "status": String(tx["status"] || "completed")
+                                        })
+                                    }
+                                }
+                            } else if (typeof promptHistoryStore !== "undefined" && promptHistoryStore !== null) {
                                 let entries = promptHistoryStore.getHistoryEntries()
-                                for (let i = 0; i < entries.length; i++) {
-                                    if (entries[i]["category"] === targetAssetType || targetAssetType === "") {
-                                        historyListModel.append(entries[i])
+                                for (let i = entries.length - 1; i >= 0; --i) {
+                                    let entry = entries[i]
+                                    let cat = String(entry["category"] || "")
+                                    if (matchesAssetType(cat)) {
+                                        historyListModel.append({
+                                            "timestamp": String(entry["timestamp"] || ""),
+                                            "category": cat,
+                                            "promptText": String(entry["promptText"] || ""),
+                                            "savedFile": "",
+                                            "status": "completed"
+                                        })
                                     }
                                 }
                             }
@@ -1063,13 +1103,14 @@ Item {
 
                 ListView {
                     id: historyListView
+                    objectName: "historyListView"
                     width: parent.width
                     model: ListModel { id: historyListModel }
 
                     delegate: ItemDelegate {
                         id: historyDelegate
                         width: historyListView.width
-                        height: 40
+                        height: 44
                         contentItem: RowLayout {
                             anchors.fill: parent
                             spacing: 10
@@ -1081,8 +1122,20 @@ Item {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: model.promptText ? (model.promptText.length > 45 ? model.promptText.substring(0, 45) + "..." : model.promptText) : ""
+                                text: model.promptText || ""
                                 color: "#FFFFFF"; font.pixelSize: 12; elide: Text.ElideRight
+                            }
+
+                            Text {
+                                visible: (model.savedFile && model.savedFile.length > 0) || model.status === "discarded"
+                                text: (model.savedFile && model.savedFile.length > 0)
+                                      ? ("✔ " + model.savedFile)
+                                      : qsTr("[discarded]")
+                                color: (model.savedFile && model.savedFile.length > 0) ? "#00F0FF" : "#FF6666"
+                                font.pixelSize: 10
+                                font.family: "Courier"
+                                elide: Text.ElideMiddle
+                                Layout.maximumWidth: 150
                             }
                         }
 
@@ -1151,60 +1204,74 @@ Item {
         function onGenerationFinished(payload) {
             promptBuilderRoot.isGenerating = false
             generationProgressDialog.finishTracking()
-            let category = payload.category || promptBuilderRoot.targetAssetType
+
+            const assetCategory = promptBuilderRoot.targetAssetType
+            const promptToStore = promptBuilderRoot.lastRawPrompt.length > 0
+                                  ? promptBuilderRoot.lastRawPrompt
+                                  : promptBuilderRoot.lastDispatchedPrompt
+            const ts = (payload && payload.timestamp)
+                       ? payload.timestamp
+                       : (promptBuilderRoot.lastSentTimestamp || new Date().toISOString())
+
             let summaryText = ""
             let thinkText = ""
+            let savedFile = ""
+            let txStatus = "completed"
 
             // 1. Script generation
-            if (payload.text !== undefined) {
+            if (payload && payload.text !== undefined) {
                 summaryText = payload.text
-                thinkText = payload.think
-                if (typeof promptHistoryStore !== "undefined" && promptHistoryStore) {
-                    console.log("[QML] Calling addHistoryEntry...");
-                    promptHistoryStore.addHistoryEntry(
-                        category,
-                        promptBuilderRoot.lastDispatchedPrompt,
-                        payload.text,
-                        payload.timestamp || new Date().toISOString()
-                    )
-                    if (payload.think && payload.think.length > 0) {
-                        promptHistoryStore.addThinkEntry(
-                            category,
-                            promptBuilderRoot.lastDispatchedPrompt,
-                            payload.think,
-                            payload.timestamp || new Date().toISOString()
-                        )
-                    }
-
-                } else {
-                    console.error("[QML] promptHistoryStore is undefined in QML context!");
-                }
-                promptBuilderRoot.scriptGenerated(payload.text, category)
+                thinkText = payload.think || ""
+                promptBuilderRoot.scriptGenerated(payload.text, assetCategory)
             }
             // 2. Image generation
-            else if (payload.candidates !== undefined) {
+            else if (payload && payload.candidates !== undefined) {
                 summaryText = "Image generation finished: " + (payload.count || payload.candidates.length) + " candidate variations ready."
+                txStatus = "pending_selection"
                 responseDisplayArea.appendIncomingText(">>> " + summaryText)
-
-                // Bubble candidates array up to the workspace view
                 promptBuilderRoot.imageCandidatesReady(payload.candidates)
             }
-            // 3. Audio generation
-            else if (payload.filePath !== undefined) {
-                summaryText = "Audio saved to: " + payload.filePath
+            // 3. Video generation (check before audio so payload.filePath routes cleanly)
+            else if (payload && (payload.outputDir !== undefined || assetCategory === "video")) {
+                savedFile = payload.filePath || ""
+                txStatus = savedFile.length > 0 ? "saved" : "completed"
+                summaryText = savedFile.length > 0
+                    ? ("Video saved to: " + savedFile)
+                    : ("Video render finished: " + (payload.frameCount || 0) + " frames @ " + (payload.fps || 24) + " FPS saved to " + (payload.outputDir || ""))
                 responseDisplayArea.appendIncomingText(">>> " + summaryText)
-                promptBuilderRoot.audioGenerated(payload.filePath)
+                promptBuilderRoot.videoRenderFinished(payload.outputDir || "", payload.frameCount || 0, payload.fps || 24.0)
             }
-            // 4. Video generation
-            else if (payload.outputDir !== undefined) {
-                summaryText = "Video render finished: " + (payload.frameCount || 0) + " frames @ " + (payload.fps || 24) + " FPS saved to " + payload.outputDir
+            // 4. Audio / Speech generation
+            else if (payload && (payload.filePath !== undefined || assetCategory === "audio")) {
+                savedFile = payload.filePath || ""
+                txStatus = savedFile.length > 0 ? "saved" : "completed"
+                summaryText = "Audio saved to: " + savedFile
                 responseDisplayArea.appendIncomingText(">>> " + summaryText)
-                promptBuilderRoot.videoRenderFinished(payload.outputDir, payload.frameCount || 0, payload.fps || 24.0)
+                promptBuilderRoot.audioGenerated(savedFile)
             }
 
-            promptBuilderRoot.recordAuditTransaction(category, summaryText, false)
-            if(thinkText != "") {
-                promptBuilderRoot.recordAuditTransaction(category, thinkText, true)
+            // Record in PromptHistoryStore across all modalities so PromptHistoryViewerDialog also shows them
+            if (typeof promptHistoryStore !== "undefined" && promptHistoryStore) {
+                promptHistoryStore.addHistoryEntry(
+                    assetCategory,
+                    promptToStore,
+                    summaryText,
+                    ts
+                )
+                if (thinkText.length > 0) {
+                    promptHistoryStore.addThinkEntry(
+                        assetCategory,
+                        promptToStore,
+                        thinkText,
+                        ts
+                    )
+                }
+            }
+
+            // Record in AuditTrailStore with saved_file, status, and provider
+            promptBuilderRoot.recordAuditTransaction(assetCategory, summaryText, false, savedFile, txStatus)
+            if (thinkText.length > 0) {
+                promptBuilderRoot.recordAuditTransaction(assetCategory, thinkText, true, "", "completed")
             }
         }
 

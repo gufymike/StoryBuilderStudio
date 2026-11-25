@@ -34,6 +34,8 @@ private slots:
     void testClearRemovesAuditFile();
     void testSignalsEmittedOnRecord();
     void testSwitchingDirectoryResetsState();
+    void testSavedFileProviderAndStatusFields();
+    void testUpdateTransactionFileAndDiscardFallback();
 
 private:
     QString m_testSessionDir;
@@ -291,6 +293,100 @@ void Test_AuditTrailStore::testSwitchingDirectoryResetsState()
     QCOMPARE(store.transactionCount(), 0);
     QVERIFY2(store.getTransactions().isEmpty(), "Memory leak/Bleed: Internal transaction list was not cleared after switching directories.");
     QVERIFY2(!QFile::exists(store.getAuditFilePath()), "Fresh directory should not contain an audit file until explicitly written to.");
+}
+
+void Test_AuditTrailStore::testSavedFileProviderAndStatusFields()
+{
+    AuditTrailStore store;
+    QString projDir = createScopedTempDir();
+    store.setStorageDirectory(projDir);
+
+    store.recordTransaction(
+        QStringLiteral("ProjectAlpha"),
+        QStringLiteral("image"),
+        QStringLiteral("Neon skyline reflected in wet asphalt"),
+        QStringLiteral("4 candidate variations ready."),
+        QStringLiteral("2026-11-24T23:01:00.000Z"),
+        QStringLiteral("2026-11-24T23:01:04.000Z"),
+        QStringList{QStringLiteral("Neon Glow")},
+        false,
+        QStringLiteral("C:/Projects/ProjectAlpha/assets/images/skyline_pick.png"),
+        QStringLiteral("completed"),
+        QStringLiteral("gemini_image")
+        );
+
+    QVariantList list = store.getTransactions();
+    QCOMPARE(list.size(), 1);
+
+    QVariantMap item = list.first().toMap();
+    QCOMPARE(item.value(QStringLiteral("saved_file")).toString(), QStringLiteral("skyline_pick.png"));
+    QCOMPARE(item.value(QStringLiteral("status")).toString(), QStringLiteral("saved"));
+    QCOMPARE(item.value(QStringLiteral("provider")).toString(), QStringLiteral("gemini_image"));
+}
+
+void Test_AuditTrailStore::testUpdateTransactionFileAndDiscardFallback()
+{
+    AuditTrailStore store;
+    QString projDir = createScopedTempDir();
+    store.setStorageDirectory(projDir);
+
+    const QString ts1 = QStringLiteral("2026-11-24T23:05:00.000Z");
+    store.recordTransaction(
+        QStringLiteral("ProjectAlpha"),
+        QStringLiteral("image"),
+        QStringLiteral("Prompt 1"),
+        QStringLiteral("Candidates ready"),
+        ts1,
+        QStringLiteral("2026-11-24T23:05:03.000Z"),
+        QStringList(),
+        false,
+        QString(),
+        QStringLiteral("pending_selection"),
+        QStringLiteral("sd_image")
+        );
+
+    QSignalSpy updateSpy(&store, &AuditTrailStore::transactionUpdated);
+    QVERIFY(store.updateTransactionFile(ts1, projDir + QStringLiteral("/assets/images/best_01.png"),
+                                        QStringLiteral("saved"), QStringLiteral("image")));
+    QCOMPARE(updateSpy.count(), 1);
+
+    QVariantMap firstItem = store.getTransactions().first().toMap();
+    QCOMPARE(firstItem.value(QStringLiteral("saved_file")).toString(), QStringLiteral("best_01.png"));
+    QCOMPARE(firstItem.value(QStringLiteral("status")).toString(), QStringLiteral("saved"));
+
+    // Second image batch + reasoning entry: category fallback should update only the non-think image entry
+    const QString ts2 = QStringLiteral("2026-11-24T23:06:00.000Z");
+    store.recordTransaction(
+        QStringLiteral("ProjectAlpha"),
+        QStringLiteral("image"),
+        QStringLiteral("Prompt 2"),
+        QStringLiteral("Candidates ready"),
+        ts2,
+        QStringLiteral("2026-11-24T23:06:03.000Z"),
+        QStringList(),
+        false,
+        QString(),
+        QStringLiteral("pending_selection"),
+        QStringLiteral("sd_image")
+        );
+    store.recordTransaction(
+        QStringLiteral("ProjectAlpha"),
+        QStringLiteral("image"),
+        QStringLiteral("Prompt 2"),
+        QStringLiteral("Reasoning trace"),
+        ts2,
+        QStringLiteral("2026-11-24T23:06:03.000Z"),
+        QStringList(),
+        true
+        );
+
+    QVERIFY(store.updateTransactionFile(QString(), QString(), QStringLiteral("discarded"), QStringLiteral("image")));
+
+    QVariantList all = store.getTransactions();
+    QCOMPARE(all.size(), 3);
+    QCOMPARE(all.at(1).toMap().value(QStringLiteral("status")).toString(), QStringLiteral("discarded"));
+    QCOMPARE(all.at(1).toMap().value(QStringLiteral("saved_file")).toString(), QString());
+    QCOMPARE(all.at(2).toMap().value(QStringLiteral("is_think_text")).toBool(), true);
 }
 
 QTEST_MAIN(Test_AuditTrailStore)

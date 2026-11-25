@@ -278,6 +278,9 @@ ApplicationWindow {
         }
 
         storyDocument.saveLocalFile(rootWindow.currentFilePath, fmt)
+        if (typeof auditTrailStore !== "undefined" && auditTrailStore !== null && rootWindow.currentFilePath !== "") {
+            auditTrailStore.updateTransactionFile("", rootWindow.currentFilePath, "saved", "script")
+        }
         rootWindow.title = "Story Builder Studio - " + rootWindow.currentFilePath
         return true
     }

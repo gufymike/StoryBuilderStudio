@@ -11,7 +11,7 @@
 
 /**
  * @class AuditTrailStore
- * @brief Records narrative generation prompts, outputs, and model parameters.
+ * @brief Records narrative generation prompts, outputs, saved asset filenames, and model parameters.
  *
  * Provides a QML-accessible interface for logging and retrieving the history
  * of AI interactions. Backed by a JSON file on disk to ensure persistence
@@ -57,13 +57,16 @@ public:
     /**
      * @brief Appends a new inference request and response to the audit log.
      * @param projectName The name of the active project.
-     * @param category The modality of the request (e.g., "script", "image").
+     * @param category The modality of the request (e.g., "script", "image", "audio", "speech", "video").
      * @param promptText The user's input prompt.
-     * @param responseText The model's output or the generated file path.
+     * @param responseText The model's text output or status summary.
      * @param sentTimestamp ISO-8601 timestamp of request dispatch.
      * @param receivedTimestamp ISO-8601 timestamp of final response.
      * @param selectedOptions A list of formatted configuration options used.
      * @param isThinkText Indicates if the response represents model reasoning content.
+     * @param savedFile Bare filename(s) written to project assets, if applicable.
+     * @param status Outcome status ("completed", "saved", "discarded", or "failed").
+     * @param provider Active driver or model identifier (e.g., "gemini_bridge", "LocalLlmEngine").
      */
     Q_INVOKABLE void recordTransaction(const QString &projectName,
                                        const QString &category,
@@ -72,7 +75,23 @@ public:
                                        const QString &sentTimestamp,
                                        const QString &receivedTimestamp,
                                        const QStringList &selectedOptions = QStringList(),
-                                       const bool &isThinkText = false);
+                                       const bool &isThinkText = false,
+                                       const QString &savedFile = QString(),
+                                       const QString &status = QStringLiteral("completed"),
+                                       const QString &provider = QString());
+
+    /**
+     * @brief Updates saved_file and status on an existing transaction after user selection or file export.
+     * @param sentTimestamp ISO-8601 timestamp UUID of the prompt entry (if empty, matches latest non-think entry in category).
+     * @param savedFile Bare filename or full path (normalized to bare filename(s)).
+     * @param status Updated outcome status (defaults to "saved").
+     * @param category Optional modality fallback when sentTimestamp is not supplied.
+     * @return True if a matching transaction was found and updated.
+     */
+    Q_INVOKABLE bool updateTransactionFile(const QString &sentTimestamp,
+                                           const QString &savedFile,
+                                           const QString &status = QStringLiteral("saved"),
+                                           const QString &category = QString());
 
     /**
      * @brief Retrieves all logged transactions as a QML-compatible list of dictionaries.
@@ -88,8 +107,10 @@ signals:
     void storageDirectoryChanged(const QString &newPath);
     void transactionCountChanged(int count);
     void transactionLogged(const QString &category, const QString &timestamp);
+    void transactionUpdated(const QString &sentTimestamp, const QString &savedFile, const QString &status);
 
 private:
     QString m_storageDirectory;
     bool isValidDirectoryPath(const QString &path) const;
+    static QString normalizeSavedFileNames(const QString &rawFileOrList);
 };
