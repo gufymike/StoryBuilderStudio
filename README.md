@@ -229,9 +229,9 @@ export DYLD_LIBRARY_PATH=$HOME/Qt/6.11.0/macos/lib:$DYLD_LIBRARY_PATH
 
 ## 7. Model Directory Architecture
 
-Story Builder Studio automatically queries a standardized model directory in your user application data path:
+When using optional local AI plugins, Story Builder Studio looks for models inside a standardized base directory. During setup, the **First Run Wizard** lets you choose a custom models folder (for example, on a secondary drive) or use the platform defaults:
 
-* **Windows:** `%APPDATA%\StoryBuilderStudio\`
+* **Windows:** `%APPDATA%\5150wtmw\StoryBuilderStudio\` 
 * **Linux:** `~/.local/share/StoryBuilderStudio/`
 * **macOS:** `~/Library/Application Support/StoryBuilderStudio/`
 
@@ -308,7 +308,7 @@ Place the language model and tokenizer inside `text/`:
 
 1. **Verify Plugins & Manifests:** Open **Help → About** to confirm loaded vs. missing local plugins, then check the **Model Settings / Manifest** tab to ensure required `.gguf`, `.onnx`, and `.safetensors` weights are highlighted green.
 2. **Audio Waveform Initialization:** In the Audio workspace, select a track or synthesize a sentence to confirm `QAudioDecoder` loads and renders waveform peaks without runtime errors.
-3. **Audit Trail Verification:** Confirm `prompt_history.json` and `think_history.json` are created in active project folders to log prompt dispatches and reasoning streams.
+3. **Audit Trail Verification:** Confirm `prompt_history.json` and `think_history.json` are created in active project folders to log prompt dispatches and reasoning streams. These are not written to till after the response is displayed.
 
 ## 10. License & Third-Party Notices
 
