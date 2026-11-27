@@ -392,10 +392,13 @@ if(APPLE)
     install(FILES
         "${CMAKE_SOURCE_DIR}/README.md"
         "${CMAKE_SOURCE_DIR}/LICENSE"
-        "${CMAKE_SOURCE_DIR}/docs/index.html"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}"
     )
 
+    install(DIRECTORY
+        "${CMAKE_SOURCE_DIR}/docs"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    )
     set_target_properties(appStoryBuilderStudio PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_ICON_FILE "app.icns"
@@ -425,7 +428,10 @@ elseif(UNIX)
         "${CMAKE_SOURCE_DIR}/README.md"
         "${CMAKE_SOURCE_DIR}/LICENSE"
         "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
-        "${CMAKE_SOURCE_DIR}/docs/index.html"
+        DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+    )
+    install(DIRECTORY
+        "${CMAKE_SOURCE_DIR}/docs"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}"
     )
 elseif(WIN32)
