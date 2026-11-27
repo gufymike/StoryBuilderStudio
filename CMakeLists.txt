@@ -260,6 +260,7 @@ add_custom_target(StoryBuilderStudioProjectFiles SOURCES
     app.png
     resources.qrc
     docs/index.html
+    docs/technical.html
     scripts/build.sh
     scripts/build.ps1
     scripts/install.sh
