@@ -166,10 +166,12 @@ Popup {
                             }
                         }
 
-                        // Badge icon for audio/video
+                        // Badge icon for scripts/audio/video
                         Text {
                             visible: pickerModal.category !== "images"
-                            text: pickerModal.category === "audio" ? "🔊" : "🎥"
+                            text: pickerModal.category === "scripts"
+                                  ? "📝"
+                                  : (pickerModal.category === "audio" ? "🔊" : "🎥")
                             font.pixelSize: 16
                             Layout.alignment: Qt.AlignVCenter
                         }
