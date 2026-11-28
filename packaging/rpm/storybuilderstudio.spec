@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Offline-capable generative narrative and multimedia studio
 
 License:        MIT
-URL:            [https://github.com/gufymike/StoryBuilderStudio](https://github.com/gufymike/StoryBuilderStudio)
+URL:            https://github.com/gufymike/StoryBuilderStudio
 Source0:        %{url}/archive/v%{version}/StoryBuilderStudio-%{version}.tar.gz
 
 BuildRequires:  cmake >= 3.20

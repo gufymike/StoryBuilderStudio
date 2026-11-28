@@ -100,7 +100,7 @@ CMakeLists.txt.user*
 # personal files
 CMakeUserPresets.json
 Bugs Found*
-
+.editorconfig
 
 # temp additions
 linter.py
