@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QTextStream>
+#include <QImage>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QRegularExpression>
@@ -395,35 +396,65 @@ bool ProjectManager::saveCandidateImage(const QString &base64Data, const QString
         return false;
     }
 
-    QString cleanBase64 = base64Data;
-    if (cleanBase64.startsWith(QLatin1String("data:image/png;base64,"))) {
-        cleanBase64.remove(0, 22);
+    QString payload = base64Data.trimmed();
+    QString mimeSubtype = QStringLiteral("png");
+
+    static const QRegularExpression dataUriRegex(
+        QStringLiteral("^data:image/([a-zA-Z0-9.+-]+);base64,"),
+        QRegularExpression::CaseInsensitiveOption);
+
+    const QRegularExpressionMatch match = dataUriRegex.match(payload);
+    if (match.hasMatch()) {
+        mimeSubtype = match.captured(1).toLower();
+        payload.remove(0, match.capturedLength(0));
     }
 
-    QByteArray rawBytes = QByteArray::fromBase64(cleanBase64.toUtf8());
+    const QByteArray rawBytes = QByteArray::fromBase64(payload.toUtf8());
     if (rawBytes.isEmpty()) {
         emit projectError(tr("Save failed: Decoded image payload is empty."));
         return false;
     }
 
-    QDir imgDir(m_currentProjectPath + QStringLiteral("/assets/images"));
-    if (!imgDir.exists()) {
-        imgDir.mkpath(QStringLiteral("."));
+    QDir imageDir(m_currentProjectPath + QStringLiteral("/assets/images"));
+    if (!imageDir.exists()) {
+        imageDir.mkpath(QStringLiteral("."));
     }
 
     QString fileName = preferredName.isEmpty()
                            ? QUuid::createUuid().toString(QUuid::WithoutBraces) + QStringLiteral(".png")
                            : preferredName + (preferredName.endsWith(QStringLiteral(".png"), Qt::CaseInsensitive) ? QString() : QStringLiteral(".png"));
 
-    QFile file(imgDir.absoluteFilePath(fileName));
-    if (!file.open(QIODevice::WriteOnly)) {
-        emit projectError(tr("Save failed: Unable to write image file: ") + file.errorString());
+    const QString targetPath = imageDir.absoluteFilePath(fileName);
+
+    // Direct write for PNG (preserves compatibility with synthetic Base64 test fixtures)
+    if (mimeSubtype == QLatin1String("png") || mimeSubtype == QLatin1String("x-png")) {
+        QFile file(targetPath);
+        if (!file.open(QIODevice::WriteOnly)) {
+            emit projectError(tr("Save failed: Unable to write image file: ") + file.errorString());
+            return false;
+        }
+        if (file.write(rawBytes) != rawBytes.size()) {
+            emit projectError(tr("Save failed: Incomplete image write: ") + file.errorString());
+            file.close();
+            return false;
+        }
+        file.flush();
+        file.close();
+        return true;
+    }
+
+    // Transcode non-PNG payloads (e.g., image/jpeg, image/webp) into PNG
+    QImage image;
+    if (!image.loadFromData(rawBytes)) {
+        emit projectError(tr("Save failed: Unable to decode %1 image payload.").arg(mimeSubtype));
         return false;
     }
 
-    file.write(rawBytes);
-    file.flush();
-    file.close();
+    if (!image.save(targetPath, "PNG")) {
+        emit projectError(tr("Save failed: Unable to encode PNG image file."));
+        return false;
+    }
+
     return true;
 }
 

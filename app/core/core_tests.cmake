@@ -1,6 +1,7 @@
 # Copyright (c) 2026 Mike Ramirez
 # SPDX-License-Identifier: MIT
 
+# AppLogger test
 add_executable(test_AppLogger
     tests/test_AppLogger.cpp
     app/core/applogger.cpp
@@ -26,6 +27,7 @@ add_executable(test_AuditTrailStore
     app/core/audittrailstore.h
 )
 
+# AuditTrailStore test
 target_include_directories(test_AuditTrailStore PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/app/core
@@ -45,6 +47,7 @@ if(WIN32)
     )
 endif()
 
+# SeriesContainer test
 add_executable(test_SeriesContainer
     tests/test_SeriesContainer.cpp
     app/core/seriescontainer.cpp
@@ -64,6 +67,7 @@ target_link_libraries(test_SeriesContainer PRIVATE
 
 add_test(NAME test_SeriesContainer COMMAND test_SeriesContainer)
 
+# ProjectManager test
 add_executable(test_ProjectManager
     tests/test_ProjectManager.cpp
     app/core/projectmanager.cpp
@@ -78,6 +82,7 @@ target_include_directories(test_ProjectManager PRIVATE
 target_link_libraries(test_ProjectManager PRIVATE
     Qt6::Core
     Qt6::Qml
+    Qt6::Gui
     Qt6::Test
 )
 

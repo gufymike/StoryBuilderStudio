@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
 #include <QSignalSpy>
 #include "app/core/projectmanager.h"
 
@@ -38,6 +39,7 @@ private slots:
     void testSaveCandidateImageDecodesBase64();
     void testSaveAudioAndVideoFiles();
     void testDeleteAssetRemovesFromDisk();
+    void testSaveCandidateImageSupportsNonPngDataUris();
 
 private:
     QString m_testSessionDir;
@@ -321,6 +323,35 @@ void Test_ProjectManager::testCreateAndOpenProjectWithEmptyEmail()
     ProjectManager opener(root);
     QVERIFY2(opener.openProject(projPath), "openProject() failed for project created without email.");
     QCOMPARE(opener.email(), QString());
+}
+
+void Test_ProjectManager::testSaveCandidateImageSupportsNonPngDataUris()
+{
+    QString root = createScopedDir();
+    ProjectManager pm(root);
+    pm.createProject(root + "/NonPngImageTest", QStringLiteral("NonPng Story"), QStringLiteral("D"), QStringLiteral("S"), QStringLiteral("A"), QStringList(), QStringLiteral("e@m.com"));
+
+    // Generate a valid 4x4 JPEG in memory and wrap it in a data URI
+    QImage sample(4, 4, QImage::Format_RGB32);
+    sample.fill(Qt::cyan);
+
+    QByteArray jpegBytes;
+    QBuffer buffer(&jpegBytes);
+    QVERIFY(buffer.open(QIODevice::WriteOnly));
+    QVERIFY(sample.save(&buffer, "JPEG", 90));
+
+    const QString jpegDataUri = QStringLiteral("data:image/jpeg;base64,")
+                                + QString::fromLatin1(jpegBytes.toBase64());
+
+    QVERIFY2(pm.saveCandidateImage(jpegDataUri, QStringLiteral("remote_candidate")),
+             "saveCandidateImage() failed to decode and save a JPEG data URI.");
+
+    const QString outPath = root + QStringLiteral("/NonPngImageTest/assets/images/remote_candidate.png");
+    QVERIFY2(QFile::exists(outPath), "Transcoded PNG was not written to assets/images/remote_candidate.png.");
+
+    QImage reloaded(outPath);
+    QVERIFY(!reloaded.isNull());
+    QCOMPARE(reloaded.size(), QSize(4, 4));
 }
 
 QTEST_MAIN(Test_ProjectManager)
