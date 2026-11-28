@@ -65,6 +65,7 @@ MenuBar {
         implicitHeight: 28
         implicitWidth: textLabel.implicitWidth + 24
         hoverEnabled: true
+        enabled: customMenuBarItem.menu ? customMenuBarItem.menu.enabled : true
 
         background: Rectangle {
             color: customMenuBarItem.highlighted || (customMenuBarItem.menu && customMenuBarItem.menu.visible)
