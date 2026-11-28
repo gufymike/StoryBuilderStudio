@@ -241,14 +241,13 @@ Window {
             objectName: "assetTabBar"
             Layout.fillWidth: true
             background: Rectangle { color: "transparent" }
-
             TabButton {
                 id: scriptsTab
                 objectName: "scriptsTab"
                 text: qsTr("Scripts")
                 implicitHeight: 28
                 background: Rectangle {
-                    color: imagesTab.checked ? "#1A4A68" : (imagesTab.hovered ? "#00B4F0" : "#0B1B26")
+                    color: scriptsTab.checked ? "#1A4A68" : (scriptsTab.hovered ? "#00B4F0" : "#0B1B26")
                     border.color: "#1A4A68"
                     border.width: 1
                     radius: 3
@@ -258,7 +257,7 @@ Window {
                     color: "#FFFFFF"
                     style: Text.Outline
                     styleColor: "#000000"
-                    font.bold: imagesTab.checked
+                    font.bold: scriptsTab.checked
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
