@@ -1,1 +1,0 @@
-Non-PNG Base64 Headers: ProjectManager::saveCandidateImage() currently strips data:image/png;base64, specifically, which works for local sd_image PNG output—if you also test a remote image driver returning image/jpeg or image/webp, we can generalize that prefix check with a regex (^data:image\/[a-zA-Z0-9.+-]+;base64,).
