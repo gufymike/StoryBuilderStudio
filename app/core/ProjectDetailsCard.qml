@@ -32,6 +32,7 @@ Rectangle {
                                      ? projectManager.dateCreated : ""
     property string dateLastEdited: (typeof projectManager !== "undefined" && projectManager.dateLastEdited)
                                         ? projectManager.dateLastEdited : ""
+    property bool collapsed: true
 
     ColumnLayout {
         id: contentCol
@@ -79,12 +80,44 @@ Rectangle {
                 font.pixelSize: 11
                 visible: text.length > 0
             }
+
+            // Expand / Collapse Card Details
+            Button {
+                id: toggleCollapseBtn
+                objectName: "toggleCollapseBtn"
+                text: root.collapsed ? qsTr("▾ Details") : qsTr("▴ Hide")
+                font.pixelSize: 11
+                Layout.preferredHeight: 26
+
+                contentItem: Text {
+                    text: toggleCollapseBtn.text
+                    color: "#00F0FF"
+                    style: Text.Outline
+                    styleColor: "#000000"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                background: Rectangle {
+                    color: toggleCollapseBtn.down ? "#0077A8" : (toggleCollapseBtn.hovered ? "#00B4F0" : "#0B1B26")
+                    border.color: "#1A4A68"
+                    border.width: 1
+                    radius: 4
+                }
+
+                onClicked: root.collapsed = !root.collapsed
+
+                ToolTip.visible: hovered
+                ToolTip.text: root.collapsed ? qsTr("Expand episode configuration fields") : qsTr("Collapse episode configuration fields")
+            }
         }
 
         Rectangle {
             Layout.fillWidth: true
             height: 1
             color: "#1A4A68"
+            visible: !root.collapsed
         }
 
         // Editable Metadata Form
@@ -93,6 +126,7 @@ Rectangle {
             objectName: "formContainer"
             Layout.fillWidth: true
             spacing: 12
+            visible: !root.collapsed
             enabled: root.isProjectOpen
             opacity: enabled ? 1.0 : 0.4
 

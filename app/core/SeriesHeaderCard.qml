@@ -10,26 +10,28 @@ Rectangle {
     id: root
     objectName: "seriesHeaderCardRoot"
     Layout.fillWidth: true
-    implicitHeight: mainLayout.implicitHeight + 28
+    implicitHeight: mainLayout.implicitHeight + 32
     color: "#08121A" // Dark Well
     border.color: "#1A4A68" // Accent Border
     border.width: 1
     radius: 6
 
-    property bool isSeriesLoaded: typeof seriesContainer !== "undefined" &&
-                                  seriesContainer !== null &&
-                                  seriesContainer.rootDirectory.length > 0
 
-    property string seriesName: (root.isSeriesLoaded && seriesContainer.name) ? seriesContainer.name : ""
-    property int subProjectCount: (root.isSeriesLoaded && seriesContainer.subProjectCount) ? seriesContainer.subProjectCount : 0
-    property string creationDateStr: (root.isSeriesLoaded && seriesContainer.creationDate) ? seriesContainer.creationDate.toLocaleDateString() : "-"
-    property string lastModifiedStr: (root.isSeriesLoaded && seriesContainer.lastModified) ? seriesContainer.lastModified.toLocaleDateString() : "-"
-    property string rootDirectory: (root.isSeriesLoaded && seriesContainer.rootDirectory) ? seriesContainer.rootDirectory : ""
-    property string shortDescription: (root.isSeriesLoaded && seriesContainer.shortDescription) ? seriesContainer.shortDescription : ""
-    property string longDescription: (root.isSeriesLoaded && seriesContainer.longDescription) ? seriesContainer.longDescription : ""
-    property string creator: (root.isSeriesLoaded && seriesContainer.creator) ? seriesContainer.creator : ""
-    property var coCreators: (root.isSeriesLoaded && seriesContainer.coCreators) ? seriesContainer.coCreators : []
-    property string email: (root.isSeriesLoaded && seriesContainer.email) ? seriesContainer.email : ""
+    readonly property bool hasSeriesContainer: typeof seriesContainer !== "undefined" && seriesContainer !== null
+
+    property bool isSeriesLoaded: root.hasSeriesContainer && seriesContainer.rootDirectory.length > 0
+
+    property string seriesName: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.name) ? seriesContainer.name : ""
+    property int subProjectCount: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.subProjectCount) ? seriesContainer.subProjectCount : 0
+    property string creationDateStr: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.creationDate) ? seriesContainer.creationDate.toLocaleDateString() : "-"
+    property string lastModifiedStr: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.lastModified) ? seriesContainer.lastModified.toLocaleDateString() : "-"
+    property string rootDirectory: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.rootDirectory) ? seriesContainer.rootDirectory : ""
+    property string shortDescription: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.shortDescription) ? seriesContainer.shortDescription : ""
+    property string longDescription: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.longDescription) ? seriesContainer.longDescription : ""
+    property string creator: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.creator) ? seriesContainer.creator : ""
+    property var coCreators: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.coCreators) ? seriesContainer.coCreators : []
+    property string email: (root.isSeriesLoaded && root.hasSeriesContainer && seriesContainer.email) ? seriesContainer.email : ""
+    property bool collapsed: true
 
     signal newSeriesRequested()
 
@@ -163,12 +165,44 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Add a new episode.")
             }
+
+            // Expand / Collapse Card Details
+            Button {
+                id: toggleCollapseBtn
+                objectName: "toggleCollapseBtn"
+                text: root.collapsed ? qsTr("▾ Details") : qsTr("▴ Hide")
+                font.pixelSize: 11
+                Layout.preferredHeight: 26
+
+                contentItem: Text {
+                    text: toggleCollapseBtn.text
+                    color: "#00F0FF"
+                    style: Text.Outline
+                    styleColor: "#000000"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                background: Rectangle {
+                    color: toggleCollapseBtn.down ? "#0077A8" : (toggleCollapseBtn.hovered ? "#00B4F0" : "#0B1B26")
+                    border.color: "#1A4A68"
+                    border.width: 1
+                    radius: 4
+                }
+
+                onClicked: root.collapsed = !root.collapsed
+
+                ToolTip.visible: hovered
+                ToolTip.text: root.collapsed ? qsTr("Expand series metadata fields") : qsTr("Collapse series metadata fields")
+            }
         }
 
         Rectangle {
             Layout.fillWidth: true
             height: 1
             color: "#1A4A68"
+            visible: !root.collapsed
         }
 
         // ==========================================
@@ -179,6 +213,7 @@ Rectangle {
             objectName: "formLayout"
             Layout.fillWidth: true
             spacing: 12
+            visible: !root.collapsed
             enabled: root.isSeriesLoaded
             opacity: enabled ? 1.0 : 0.4
 

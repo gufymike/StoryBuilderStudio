@@ -333,17 +333,20 @@ Item {
                     anchors.fill: parent
                     color: "#08121A"
                     ScrollView {
+                        id: projectDetailsScroll
                         anchors.fill: parent
                         anchors.margins: 14
+                        contentWidth: availableWidth
                         clip: true
                         ColumnLayout {
-                            width: parent.width - 24
+                            width: projectDetailsScroll.availableWidth
                             spacing: 12
 
                             SeriesHeaderCard {
                                 id: seriesHeaderCard
                                 objectName: "seriesHeaderCard"
                                 Layout.fillWidth: true
+                                collapsed: true
                                 onNewSeriesRequested: newProjectDialog.open()
                             }
 
@@ -351,6 +354,7 @@ Item {
                                 id: projectDetailsCard
                                 objectName: "projectDetailsCard"
                                 Layout.fillWidth: true
+                                collapsed: true
                             }
 
                             EpisodeListCard {

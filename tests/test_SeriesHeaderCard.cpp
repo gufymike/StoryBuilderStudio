@@ -5,6 +5,8 @@
 #include <QCoreApplication>
 #include <QQmlEngine>
 #include <QQmlComponent>
+#include <QQuickWindow>
+#include <QQuickItem>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QDir>
@@ -25,6 +27,7 @@ private slots:
     void testLoadedSeriesStateAndLabels();
     void testEditableFieldPairsConfiguration();
     void testToolTipsAndButtonEnabled();
+    void testCollapseAndExpandToggle();
 
 private:
     QQmlEngine m_engine;
@@ -194,6 +197,54 @@ void Test_SeriesHeaderCard::testToolTipsAndButtonEnabled()
     QCOMPARE(newEpBtn->property("text").toString(), QStringLiteral("＋ New Episode"));
     QCOMPARE(newEpBtn->property("enabled").toBool(), true);
     QVERIFY(newEpBtn->property("hovered").isValid());
+}
+
+void Test_SeriesHeaderCard::testCollapseAndExpandToggle()
+{
+    QQmlComponent component(&m_engine, m_componentUrl);
+    QVERIFY2(!component.isError(), qPrintable(component.errorString()));
+
+    QQuickWindow window;
+    window.resize(800, 600);
+    window.show();
+
+    QScopedPointer<QObject> cardObj(component.create());
+    QVERIFY(!cardObj.isNull());
+
+    auto *card = qobject_cast<QQuickItem*>(cardObj.data());
+    QVERIFY(card != nullptr);
+    card->setParentItem(window.contentItem());
+    card->setWidth(760);
+    card->setProperty("isSeriesLoaded", true);
+    QCoreApplication::processEvents();
+
+    QObject *form = card->findChild<QObject*>(UI::SeriesHeaderCard::FormLayout);
+    QVERIFY2(form != nullptr, "UI Component Missing: 'formLayout' not found.");
+
+    QObject *toggleBtn = card->findChild<QObject*>(UI::SeriesHeaderCard::ToggleCollapseBtn);
+    QVERIFY2(toggleBtn != nullptr, "UI Component Missing: 'toggleCollapseBtn' not found.");
+
+    // Starts collapsed by default
+    QCOMPARE(card->property("collapsed").toBool(), true);
+    QCOMPARE(form->property("visible").toBool(), false);
+    QCOMPARE(toggleBtn->property("text").toString(), QStringLiteral("▾ Details"));
+    const qreal collapsedHeight = card->property("implicitHeight").toReal();
+
+    // Click to expand
+    QMetaObject::invokeMethod(toggleBtn, "clicked");
+    QCoreApplication::processEvents();
+    QCOMPARE(card->property("collapsed").toBool(), false);
+    QCOMPARE(form->property("visible").toBool(), true);
+    QCOMPARE(toggleBtn->property("text").toString(), QStringLiteral("▴ Hide"));
+    QTRY_VERIFY(card->implicitHeight() > collapsedHeight);
+
+    // Click to collapse again
+    QMetaObject::invokeMethod(toggleBtn, "clicked");
+    QCoreApplication::processEvents();
+    QCOMPARE(card->property("collapsed").toBool(), true);
+    QCOMPARE(form->property("visible").toBool(), false);
+    QCOMPARE(toggleBtn->property("text").toString(), QStringLiteral("▾ Details"));
+    QTRY_COMPARE(card->implicitHeight(), collapsedHeight);
 }
 
 QTEST_MAIN(Test_SeriesHeaderCard)

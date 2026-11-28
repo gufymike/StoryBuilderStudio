@@ -35,6 +35,7 @@ constexpr const char* WriterField       = "writerField";
 constexpr const char* ContactField      = "contactField";
 constexpr const char* CreatedDateText   = "createdDateText";
 constexpr const char* EditedDateText    = "editedDateText";
+constexpr const char* ToggleCollapseBtn = "toggleCollapseBtn";
 }
 
 namespace SeriesHeaderCard {
@@ -50,7 +51,8 @@ constexpr const char* CreatorPair       = "creatorPair";
 constexpr const char* CoCreatorsPair    = "coCreatorsPair";
 constexpr const char* EmailPair         = "emailPair";
 constexpr const char* ManifestPathText  = "manifestPathText";
-constexpr const char* CreatedDateText       = "createdDateText";
+constexpr const char* CreatedDateText   = "createdDateText";
+constexpr const char* ToggleCollapseBtn = "toggleCollapseBtn";
 }
 
 namespace SeriesLauncherModal {
