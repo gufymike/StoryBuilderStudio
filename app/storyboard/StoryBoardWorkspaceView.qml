@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import StoryBuilderStudio
 
 Rectangle {
@@ -53,6 +54,64 @@ Rectangle {
         id: detailDialog
         objectName: "detailDialog"
     }
+
+    function urlToLocalPath(url) {
+            if (!url) return ""
+            let path = url.toString().replace(/^file:\/\//i, "")
+            if (Qt.platform.os === "windows" && path.startsWith("/")) {
+                path = path.substring(1)
+            }
+            return decodeURIComponent(path)
+        }
+
+        function defaultExportFolderUrl() {
+            let base = (typeof storyBoardManager !== "undefined" && storyBoardManager !== null && storyBoardManager.episodePath)
+                       ? storyBoardManager.episodePath : ""
+            if (base.length === 0) return ""
+            let normalized = base.replace(/\\/g, "/")
+            return (Qt.platform.os === "windows" ? "file:///" : "file://") + normalized
+        }
+
+        StoryBoardExporter {
+            id: boardExporter
+            objectName: "boardExporter"
+            onExportSucceeded: (savedPath) => {
+                statusText.text = qsTr("Exported storyboard: ") + savedPath
+                statusText.color = "#00F0FF"
+            }
+            onExportFailed: (err) => {
+                statusText.text = qsTr("Error: ") + err
+                statusText.color = "#FF4444"
+            }
+        }
+
+        FileDialog {
+            id: exportPdfDialog
+            objectName: "exportPdfDialog"
+            title: qsTr("Export Storyboard to PDF")
+            fileMode: FileDialog.SaveFile
+            nameFilters: ["PDF Documents (*.pdf)"]
+            onAccepted: {
+                let nativePath = storyBoardWorkspace.urlToLocalPath(selectedFile)
+                let epTitle = (typeof projectManager !== "undefined" && projectManager !== null) ? projectManager.projectName : ""
+                let epAuthor = (typeof projectManager !== "undefined" && projectManager !== null) ? projectManager.author : ""
+                boardExporter.exportToPdf(nativePath, storyBoardManager, epTitle, epAuthor)
+            }
+        }
+
+        FileDialog {
+            id: exportPptxDialog
+            objectName: "exportPptxDialog"
+            title: qsTr("Export Storyboard to PowerPoint")
+            fileMode: FileDialog.SaveFile
+            nameFilters: ["PowerPoint Presentations (*.pptx)"]
+            onAccepted: {
+                let nativePath = storyBoardWorkspace.urlToLocalPath(selectedFile)
+                let epTitle = (typeof projectManager !== "undefined" && projectManager !== null) ? projectManager.projectName : ""
+                let epAuthor = (typeof projectManager !== "undefined" && projectManager !== null) ? projectManager.author : ""
+                boardExporter.exportToPptx(nativePath, storyBoardManager, epTitle, epAuthor)
+            }
+        }
 
     ColumnLayout {
         anchors.fill: parent
@@ -118,6 +177,69 @@ Rectangle {
                 onClicked: {
                         addShotDialog.open()
                         dialogShotNameField.forceActiveFocus()
+                }
+            }
+            Button {
+                id: exportPdfBtn
+                objectName: "exportPdfBtn"
+                text: qsTr("Export PDF...")
+                implicitHeight: 26
+                font.pixelSize: 11
+                enabled: typeof storyBoardManager !== "undefined" && storyBoardManager !== null && storyBoardManager.shotCount > 0
+                opacity: enabled ? 1.0 : 0.45
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Export single-shot 16:9 storyboard deck as PDF")
+                background: Rectangle {
+                    color: exportPdfBtn.down ? "#0077A8" : (exportPdfBtn.hovered ? "#00B4F0" : "#0B1B26")
+                    border.color: exportPdfBtn.enabled ? "#1A4A68" : "#112838"
+                    border.width: 1
+                    radius: 3
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#FFFFFF"
+                    style: Text.Outline
+                    styleColor: "#000000"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    let folderUrl = storyBoardWorkspace.defaultExportFolderUrl()
+                    if (folderUrl.length > 0) exportPdfDialog.currentFolder = folderUrl
+                    exportPdfDialog.open()
+                }
+            }
+
+            Button {
+                id: exportPptxBtn
+                objectName: "exportPptxBtn"
+                text: qsTr("Export PPTX...")
+                implicitHeight: 26
+                font.pixelSize: 11
+                enabled: typeof storyBoardManager !== "undefined" && storyBoardManager !== null && storyBoardManager.shotCount > 0
+                opacity: enabled ? 1.0 : 0.45
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Export single-shot 16:9 storyboard deck as PowerPoint (.pptx)")
+                background: Rectangle {
+                    color: exportPptxBtn.down ? "#0077A8" : (exportPptxBtn.hovered ? "#00B4F0" : "#0B1B26")
+                    border.color: exportPptxBtn.enabled ? "#1A4A68" : "#112838"
+                    border.width: 1
+                    radius: 3
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#FFFFFF"
+                    style: Text.Outline
+                    styleColor: "#000000"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    let folderUrl = storyBoardWorkspace.defaultExportFolderUrl()
+                    if (folderUrl.length > 0) exportPptxDialog.currentFolder = folderUrl
+                    exportPptxDialog.open()
                 }
             }
         }

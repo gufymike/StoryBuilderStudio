@@ -338,9 +338,12 @@ constexpr const char* ViewHeaderTitle   = "viewHeaderTitle";
 constexpr const char* ShotStatsText     = "shotStatsText";
 constexpr const char* StatusText        = "statusText";
 constexpr const char* AddShotBtn        = "addShotBtn";
+constexpr const char* ExportPdfBtn      = "exportPdfBtn";
+constexpr const char* ExportPptxBtn     = "exportPptxBtn";
 constexpr const char* AddShotDialog     = "addShotDialog";
 constexpr const char* DialogShotNameField = "dialogShotNameField";
 }
+
 // end STORYBOARD
 
 //start WORKSPACE fields

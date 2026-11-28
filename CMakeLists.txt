@@ -228,12 +228,15 @@ qt_add_qml_module(StoryBuilderStudioLib
         app/settings/settingsmanager.h app/settings/settingsmanager.cpp
         app/storyboard/storyboardmanager.h app/storyboard/storyboardmanager.cpp
         app/storyboard/storydocument.h app/storyboard/storydocument.cpp
+        app/storyboard/storyboardexporter.h app/storyboard/storyboardexporter.cpp
         app/workspace/abstractassetdirectorymodel.h app/workspace/abstractassetdirectorymodel.cpp
         app/workspace/audiodirectorymodel.h
         app/workspace/audio/audiowaveformmodel.h app/workspace/audio/audiowaveformmodel.cpp
         app/workspace/imagedirectorymodel.h app/workspace/imagedirectorymodel.cpp
         app/workspace/scriptsdirectorymodel.h
         app/workspace/videodirectorymodel.h
+
+
 )
 
 target_link_libraries(StoryBuilderStudioLib PUBLIC

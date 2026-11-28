@@ -184,6 +184,7 @@ target_link_libraries(test_StoryBoardCard PRIVATE
 )
 add_test(NAME test_StoryBoardCard COMMAND test_StoryBoardCard)
 
+# --- test_StoryBoardWorkSpaceView ---
 add_executable(test_StoryBoardWorkspaceView
     tests/test_StoryBoardWorkspaceView.cpp
 )
@@ -216,3 +217,35 @@ target_link_libraries(test_StoryBoardWorkspaceView PRIVATE
     StoryBuilderStudioLib
 )
 add_test(NAME test_StoryBoardWorkspaceView COMMAND test_StoryBoardWorkspaceView)
+
+# --- test_StoryBoardExporter ---
+add_executable(test_StoryBoardExporter
+    tests/test_StoryBoardExporter.cpp
+    app/storyboard/storyboardmanager.h
+    app/storyboard/storyboardmanager.cpp
+    app/storyboard/storyboardexporter.h
+    app/storyboard/storyboardexporter.cpp
+)
+
+target_include_directories(test_StoryBoardExporter PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/storyboard
+)
+
+if(WIN32)
+    set_target_properties(test_StoryBoardExporter PROPERTIES WIN32_EXECUTABLE FALSE)
+    if(MINGW)
+        target_link_options(test_StoryBoardExporter PRIVATE -mconsole)
+    elseif(MSVC)
+        target_link_options(test_StoryBoardExporter PRIVATE /SUBSYSTEM:CONSOLE)
+    endif()
+endif()
+
+target_link_libraries(test_StoryBoardExporter PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Test
+)
+
+add_test(NAME test_StoryBoardExporter COMMAND test_StoryBoardExporter)

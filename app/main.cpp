@@ -22,7 +22,7 @@
 #include "prompthistorystore.h"
 #include "audittrailstore.h"
 #include "storydocument.h"
-
+#include "storyboardexporter.h"
 
 // Workspace Models
 #include "projectdirectorymodel.h"
@@ -214,6 +214,7 @@ int main(int argc, char *argv[])
 
     // 9. QML Type Registrations
     qmlRegisterType<StoryDocument>("StoryBuilderStudio", 1, 0, "StoryDocument");
+    qmlRegisterType<StoryBoardExporter>("StoryBuilderStudio", 1, 0, "StoryBoardExporter");
     qmlRegisterType<ProjectDirectoryModel>("StoryBuilderStudio", 1, 0, "ProjectDirectoryModel");
     qmlRegisterType<AudioWaveformModel>("StoryBuilderStudio", 1, 0, "AudioWaveformModel");
     qmlRegisterType<ScriptsDirectoryModel>("StoryBuilderStudio", 1, 0, "ScriptsDirectoryModel");

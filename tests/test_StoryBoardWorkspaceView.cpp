@@ -17,6 +17,7 @@
 #include "imagedirectorymodel.h"
 #include "audiodirectorymodel.h"
 #include "videodirectorymodel.h"
+#include "storyboardexporter.h"
 #include "ui_constants.h"
 
 class MockWorkspaceStoryboardManager : public QObject
@@ -166,6 +167,7 @@ void Test_StoryBoardWorkspaceView::initTestCase()
     qmlRegisterType<AudioDirectoryModel>("StoryBuilderStudio", 1, 0, "AudioDirectoryModel");
     qmlRegisterType<VideoDirectoryModel>("StoryBuilderStudio", 1, 0, "VideoDirectoryModel");
     qmlRegisterType<ScriptsDirectoryModel>("StoryBuilderStudio", 1, 0, "ScriptsDirectoryModel");
+    qmlRegisterType<StoryBoardExporter>("StoryBuilderStudio", 1, 0, "StoryBoardExporter");
 
     QString baseTemp = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     QString sessionUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);

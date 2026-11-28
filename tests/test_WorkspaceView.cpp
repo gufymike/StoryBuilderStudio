@@ -18,6 +18,7 @@
 #include "audiodirectorymodel.h"
 #include "audiowaveformmodel.h"
 #include "videodirectorymodel.h"
+#include "storyboardexporter.h"
 #include "ui_constants.h"
 
 class MockProjectManager : public QObject
@@ -155,6 +156,7 @@ void Test_WorkspaceView::initTestCase()
     qmlRegisterType<AudioWaveformModel>("StoryBuilderStudio", 1, 0, "AudioWaveformModel");
     qmlRegisterType<VideoDirectoryModel>("StoryBuilderStudio", 1, 0, "VideoDirectoryModel");
     qmlRegisterType<ScriptsDirectoryModel>("StoryBuilderStudio", 1, 0, "ScriptsDirectoryModel");
+    qmlRegisterType<StoryBoardExporter>("StoryBuilderStudio", 1, 0, "StoryBoardExporter");
 
     QString baseTemp = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     QString sessionUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
